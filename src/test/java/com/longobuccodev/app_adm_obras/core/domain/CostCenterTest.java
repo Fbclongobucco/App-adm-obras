@@ -1,6 +1,6 @@
-package com.longobuccodev.app_accommodation.core.domain;
+package com.longobuccodev.app_adm_obras.core.domain;
 
-import com.longobuccodev.app_accommodation.core.exception.InvalidCostCenterException;
+import com.longobuccodev.app_adm_obras.core.exception.InvalidCostCenterException;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;

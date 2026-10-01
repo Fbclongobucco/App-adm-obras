@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.longobuccodev</groupId>
-	<artifactId>app_accommodation</artifactId>
+	<artifactId>app-adm-obras</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>app_accommodation</name>
+	<name>app-adm-obras</name>
 	<description/>
 	<url/>
 	<licenses>

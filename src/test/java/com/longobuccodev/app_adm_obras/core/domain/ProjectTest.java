@@ -1,7 +1,7 @@
-package com.longobuccodev.app_accommodation.core.domain;
+package com.longobuccodev.app_adm_obras.core.domain;
 
-import com.longobuccodev.app_accommodation.core.domain.Meal.MealType;
-import com.longobuccodev.app_accommodation.core.exception.InvalidProjectException;
+import com.longobuccodev.app_adm_obras.core.domain.Meal.MealType;
+import com.longobuccodev.app_adm_obras.core.exception.InvalidProjectException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

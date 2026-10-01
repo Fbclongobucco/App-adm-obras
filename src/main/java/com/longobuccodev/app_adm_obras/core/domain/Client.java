@@ -1,6 +1,6 @@
-package com.longobuccodev.app_accommodation.core.domain;
+package com.longobuccodev.app_adm_obras.core.domain;
 
-import com.longobuccodev.app_accommodation.core.exception.InvalidClientException;
+import com.longobuccodev.app_adm_obras.core.exception.InvalidClientException;
 
 import java.util.LinkedHashSet;
 import java.util.Objects;

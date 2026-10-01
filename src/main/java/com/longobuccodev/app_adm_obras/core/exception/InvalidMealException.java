@@ -1,4 +1,4 @@
-package com.longobuccodev.app_accommodation.core.exception;
+package com.longobuccodev.app_adm_obras.core.exception;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

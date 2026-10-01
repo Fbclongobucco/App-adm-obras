@@ -1,6 +1,6 @@
-package com.longobuccodev.app_accommodation.core.domain;
+package com.longobuccodev.app_adm_obras.core.domain;
 
-import com.longobuccodev.app_accommodation.core.exception.InvalidAccommodationException;
+import com.longobuccodev.app_adm_obras.core.exception.InvalidAccommodationException;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashSet;

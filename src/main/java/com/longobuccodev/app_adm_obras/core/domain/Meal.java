@@ -1,6 +1,6 @@
-package com.longobuccodev.app_accommodation.core.domain;
+package com.longobuccodev.app_adm_obras.core.domain;
 
-import com.longobuccodev.app_accommodation.core.exception.InvalidMealException;
+import com.longobuccodev.app_adm_obras.core.exception.InvalidMealException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

@@ -1,4 +1,4 @@
-package com.longobuccodev.app_accommodation.core.exception;
+package com.longobuccodev.app_adm_obras.core.exception;
 
 public class InvalidAddressException extends CoreDomainException {
 

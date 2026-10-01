@@ -1,7 +1,7 @@
-package com.longobuccodev.app_accommodation.core.domain;
+package com.longobuccodev.app_adm_obras.core.domain;
 
-import com.longobuccodev.app_accommodation.core.domain.Employee.Role;
-import com.longobuccodev.app_accommodation.core.exception.InvalidEmployeeException;
+import com.longobuccodev.app_adm_obras.core.domain.Employee.Role;
+import com.longobuccodev.app_adm_obras.core.exception.InvalidEmployeeException;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;

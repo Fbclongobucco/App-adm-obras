@@ -1,6 +1,6 @@
-package com.longobuccodev.app_accommodation.core.domain;
+package com.longobuccodev.app_adm_obras.core.domain;
 
-import com.longobuccodev.app_accommodation.core.exception.InvalidEmployeeException;
+import com.longobuccodev.app_adm_obras.core.exception.InvalidEmployeeException;
 
 import java.time.LocalDate;
 import java.util.LinkedHashSet;

@@ -1,10 +1,10 @@
-package com.longobuccodev.app_accommodation;
+package com.longobuccodev.app_adm_obras;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class AppAccommodationApplicationTests {
+class AppAdmObrasApplicationTests {
 
 	@Test
 	void contextLoads() {
