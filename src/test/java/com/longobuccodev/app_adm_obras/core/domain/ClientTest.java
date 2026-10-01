@@ -42,16 +42,17 @@ class ClientTest {
     }
 
     @Test
-    void shouldCopyProjectsOnAssignment() {
-        Client client = newClient();
+    void shouldIgnoreNullProjectsAndCopyOnConstructor() {
         Set<Project> projects = new HashSet<>();
         projects.add(null);
 
-        client.setProjects(projects);
-        projects.add(new Project(null, "OS-1", "Obra", java.time.LocalDate.now(), null,
-                client, null, null, false));
+        Client client = new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444",
+                newAddress(), projects);
+        projects.add(new Project(null, "OS-1", "Obra",
+                new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"), java.time.LocalDate.now(), null,
+                newClient(), null, null, false));
 
-        assertThat(client.getProjects()).hasSize(1);
+        assertThat(client.getProjects()).isEmpty();
     }
 
     @Test

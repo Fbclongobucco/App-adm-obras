@@ -27,7 +27,7 @@ public class Accommodation {
     private Integer days;
     private Boolean isContract;
     private Project project;
-    private Set<Employee> employees;
+    private final Set<Employee> employees;
     private BigDecimal totalPrice;
 
     public Accommodation(UUID id, String hostName, String hostPhone, Address address, Integer capacity,
@@ -40,9 +40,9 @@ public class Accommodation {
         setCapacity(capacity);
         setDays(days);
         setContract(isContract);
-        setProject(project);
-        setEmployees(employees);
+        this.employees = validateEmployees(employees);
         setTotalPrice(totalPrice);
+        setProject(project);
     }
 
     public UUID getId() {
@@ -110,15 +110,21 @@ public class Accommodation {
     }
 
     public void setProject(Project project) {
+        if (this.project == project) {
+            return;
+        }
+        Project previous = this.project;
         this.project = project;
+        if (previous != null) {
+            previous.removeAccommodation(this);
+        }
+        if (project != null) {
+            project.addAccommodation(this);
+        }
     }
 
     public Set<Employee> getEmployees() {
         return employees;
-    }
-
-    public void setEmployees(Set<Employee> employees) {
-        this.employees = validateEmployees(employees);
     }
 
     public BigDecimal getTotalPrice() {
@@ -127,6 +133,9 @@ public class Accommodation {
 
     public void setTotalPrice(BigDecimal totalPrice) {
         this.totalPrice = validateTotalPrice(totalPrice);
+        if (project != null) {
+            project.refreshTotalPrice();
+        }
     }
 
     @Override

@@ -20,6 +20,10 @@ class EmployeeTest {
     }
 
     private static Employee newEmployee(UUID id) {
+        return newEmployee(id, null);
+    }
+
+    private static Employee newEmployee(UUID id, Set<Project> projects) {
         return new Employee(
                 id,
                 "Joao da Silva",
@@ -29,7 +33,7 @@ class EmployeeTest {
                 null,
                 LocalDate.of(1990, 5, 20),
                 new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"),
-                null,
+                projects,
                 Role.MONTADOR
         );
     }
@@ -39,7 +43,8 @@ class EmployeeTest {
     }
 
     private static Project newProject() {
-        return new Project(null, "OS-1234", "Obra de reforma", LocalDate.of(2026, 1, 10), null,
+        return new Project(null, "OS-1234", "Obra de reforma", new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"),
+                LocalDate.of(2026, 1, 10), null,
                 new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444", newAddress(), null),
                 null, null, false);
     }
@@ -79,12 +84,11 @@ class EmployeeTest {
     }
 
     @Test
-    void shouldCopyProjectsOnAssignment() {
+    void shouldCopyProjectsOnConstructor() {
         Set<Project> projects = new HashSet<>();
         projects.add(newProject());
 
-        Employee employee = newEmployee();
-        employee.setProjects(projects);
+        Employee employee = newEmployee(null, projects);
         projects.add(newProject());
 
         assertThat(employee.getProjects()).hasSize(1);

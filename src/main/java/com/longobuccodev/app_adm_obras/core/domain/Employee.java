@@ -3,6 +3,8 @@ package com.longobuccodev.app_adm_obras.core.domain;
 import com.longobuccodev.app_adm_obras.core.exception.InvalidEmployeeException;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -28,7 +30,7 @@ public class Employee {
     private Address address;
     private LocalDate birthDate;
     private CostCenter costCenter;
-    private Set<Project> projects;
+    private final Set<Project> projects = new LinkedHashSet<>();
     private Role role;
 
     public Employee(UUID id, String name, String email, String cpf, String phone, Address address,
@@ -41,8 +43,10 @@ public class Employee {
         setAddress(address);
         setBirthDate(birthDate);
         setCostCenter(costCenter);
-        setProjects(projects);
         setRole(role);
+        if (projects != null) {
+            new ArrayList<>(projects).stream().filter(Objects::nonNull).forEach(this::addProject);
+        }
     }
 
     public UUID getId() {
@@ -110,11 +114,22 @@ public class Employee {
     }
 
     public Set<Project> getProjects() {
-        return projects;
+        return Collections.unmodifiableSet(projects);
     }
 
-    public void setProjects(Set<Project> projects) {
-        this.projects = validateProjects(projects);
+    public void addProject(Project project) {
+        if (project == null) {
+            throw InvalidEmployeeException.missingProject();
+        }
+        if (projects.add(project)) {
+            project.addEmployee(this);
+        }
+    }
+
+    public void removeProject(Project project) {
+        if (projects.remove(project)) {
+            project.removeEmployee(this);
+        }
     }
 
     public Role getRole() {
@@ -193,13 +208,6 @@ public class Employee {
             throw InvalidEmployeeException.missingCostCenter();
         }
         return costCenter;
-    }
-
-    private static Set<Project> validateProjects(Set<Project> projects) {
-        if (projects == null) {
-            return new LinkedHashSet<>();
-        }
-        return new LinkedHashSet<>(projects);
     }
 
     private static Role validateRole(Role role) {

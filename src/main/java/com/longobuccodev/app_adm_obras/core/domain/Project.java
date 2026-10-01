@@ -5,6 +5,8 @@ import com.longobuccodev.app_adm_obras.core.exception.InvalidProjectException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -23,28 +25,35 @@ public class Project {
     private UUID id;
     private String os;
     private String description;
+    private CostCenter costCenter;
     private LocalDate startDate;
     private LocalDate endDate;
     private Client client;
-    private Set<Accommodation> accommodations;
-    private Set<Employee> employees;
+    private final Set<Accommodation> accommodations = new LinkedHashSet<>();
+    private final Set<Employee> employees = new LinkedHashSet<>();
     private Meal lunch;
     private Meal dinner;
     private BigDecimal totalPrice;
     private Boolean isCompleted;
 
-    public Project(UUID id, String os, String description, LocalDate startDate, LocalDate endDate,
-                   Client client, Set<Accommodation> accommodations, Set<Employee> employees,
+    public Project(UUID id, String os, String description, CostCenter costCenter, LocalDate startDate,
+                   LocalDate endDate, Client client, Set<Accommodation> accommodations, Set<Employee> employees,
                    Boolean isCompleted) {
         setId(id);
         setOs(os);
         setDescription(description);
+        setCostCenter(costCenter);
         setStartDate(startDate);
         setEndDate(endDate);
         setClient(client);
-        setAccommodations(accommodations);
-        setEmployees(employees);
         setCompleted(isCompleted);
+        if (accommodations != null) {
+            new ArrayList<>(accommodations).stream().filter(Objects::nonNull).forEach(this::addAccommodation);
+        }
+        if (employees != null) {
+            new ArrayList<>(employees).stream().filter(Objects::nonNull).forEach(this::addEmployee);
+        }
+        refreshTotalPrice();
     }
 
     public UUID getId() {
@@ -71,6 +80,14 @@ public class Project {
         this.description = validateDescription(description);
     }
 
+    public CostCenter getCostCenter() {
+        return costCenter;
+    }
+
+    public void setCostCenter(CostCenter costCenter) {
+        this.costCenter = validateCostCenter(costCenter);
+    }
+
     public LocalDate getStartDate() {
         return startDate;
     }
@@ -92,24 +109,57 @@ public class Project {
     }
 
     public void setClient(Client client) {
-        this.client = validateClient(client);
+        Client validated = validateClient(client);
+        if (this.client == validated) {
+            return;
+        }
+        Client previous = this.client;
+        this.client = validated;
+        if (previous != null) {
+            previous.removeProject(this);
+        }
+        validated.addProject(this);
     }
 
     public Set<Accommodation> getAccommodations() {
-        return accommodations;
+        return Collections.unmodifiableSet(accommodations);
     }
 
-    public void setAccommodations(Set<Accommodation> accommodations) {
-        this.accommodations = validateAccommodations(accommodations);
-        this.totalPrice = calculateTotalPrice();
+    public void addAccommodation(Accommodation accommodation) {
+        if (accommodation == null) {
+            throw InvalidProjectException.missingAccommodation();
+        }
+        accommodations.add(accommodation);
+        if (accommodation.getProject() != this) {
+            accommodation.setProject(this);
+        }
+        refreshTotalPrice();
+    }
+
+    public void removeAccommodation(Accommodation accommodation) {
+        if (accommodations.remove(accommodation) && accommodation.getProject() == this) {
+            accommodation.setProject(null);
+        }
+        refreshTotalPrice();
     }
 
     public Set<Employee> getEmployees() {
-        return employees;
+        return Collections.unmodifiableSet(employees);
     }
 
-    public void setEmployees(Set<Employee> employees) {
-        this.employees = validateEmployees(employees);
+    public void addEmployee(Employee employee) {
+        if (employee == null) {
+            throw InvalidProjectException.missingEmployee();
+        }
+        if (employees.add(employee)) {
+            employee.addProject(this);
+        }
+    }
+
+    public void removeEmployee(Employee employee) {
+        if (employees.remove(employee)) {
+            employee.removeProject(this);
+        }
     }
 
     public Meal getLunch() {
@@ -118,7 +168,7 @@ public class Project {
 
     public void setLunch(Meal lunch) {
         this.lunch = validateMeal(lunch, MealType.LUNCH);
-        this.totalPrice = calculateTotalPrice();
+        refreshTotalPrice();
     }
 
     public Meal getDinner() {
@@ -127,7 +177,7 @@ public class Project {
 
     public void setDinner(Meal dinner) {
         this.dinner = validateMeal(dinner, MealType.DINNER);
-        this.totalPrice = calculateTotalPrice();
+        refreshTotalPrice();
     }
 
     public BigDecimal getTotalPrice() {
@@ -191,6 +241,10 @@ public class Project {
         return Objects.hashCode(id);
     }
 
+    void refreshTotalPrice() {
+        this.totalPrice = calculateTotalPrice();
+    }
+
     private BigDecimal calculateTotalPrice() {
         BigDecimal total = BigDecimal.ZERO;
         if (lunch != null) {
@@ -199,10 +253,8 @@ public class Project {
         if (dinner != null) {
             total = total.add(dinner.getTotalPrice());
         }
-        if (accommodations != null) {
-            for (Accommodation accommodation : accommodations) {
-                total = total.add(accommodation.getTotalPrice());
-            }
+        for (Accommodation accommodation : accommodations) {
+            total = total.add(accommodation.getTotalPrice());
         }
         return total;
     }
@@ -231,6 +283,13 @@ public class Project {
         return normalized;
     }
 
+    private static CostCenter validateCostCenter(CostCenter costCenter) {
+        if (costCenter == null) {
+            throw InvalidProjectException.missingCostCenter();
+        }
+        return costCenter;
+    }
+
     private static LocalDate validateStartDate(LocalDate startDate) {
         if (startDate == null) {
             throw InvalidProjectException.missingStartDate();
@@ -250,20 +309,6 @@ public class Project {
             throw InvalidProjectException.missingClient();
         }
         return client;
-    }
-
-    private static Set<Accommodation> validateAccommodations(Set<Accommodation> accommodations) {
-        if (accommodations == null) {
-            return new LinkedHashSet<>();
-        }
-        return new LinkedHashSet<>(accommodations);
-    }
-
-    private static Set<Employee> validateEmployees(Set<Employee> employees) {
-        if (employees == null) {
-            return new LinkedHashSet<>();
-        }
-        return new LinkedHashSet<>(employees);
     }
 
     private static Meal validateMeal(Meal meal, MealType expectedType) {

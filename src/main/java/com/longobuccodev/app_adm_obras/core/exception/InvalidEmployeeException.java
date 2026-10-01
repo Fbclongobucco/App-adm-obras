@@ -58,4 +58,8 @@ public class InvalidEmployeeException extends CoreDomainException {
                 "Employee cost center must not be null"
         );
     }
+
+    public static InvalidEmployeeException missingProject() {
+        return new InvalidEmployeeException("employee.invalid.project", "Employee project must not be null");
+    }
 }

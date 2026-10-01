@@ -26,6 +26,10 @@ public class InvalidProjectException extends CoreDomainException {
         );
     }
 
+    public static InvalidProjectException missingCostCenter() {
+        return new InvalidProjectException("project.invalid.cost_center", "Project cost center must not be null");
+    }
+
     public static InvalidProjectException missingStartDate() {
         return new InvalidProjectException("project.invalid.start_date", "Project start date must not be null");
     }
@@ -64,5 +68,13 @@ public class InvalidProjectException extends CoreDomainException {
                 "project.invalid.meal_type",
                 "Meal type " + actualType + " cannot be assigned to the " + expectedType + " property"
         );
+    }
+
+    public static InvalidProjectException missingAccommodation() {
+        return new InvalidProjectException("project.invalid.accommodation", "Project accommodation must not be null");
+    }
+
+    public static InvalidProjectException missingEmployee() {
+        return new InvalidProjectException("project.invalid.employee", "Project employee must not be null");
     }
 }

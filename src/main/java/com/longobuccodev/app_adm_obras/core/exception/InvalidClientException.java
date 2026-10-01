@@ -38,4 +38,8 @@ public class InvalidClientException extends CoreDomainException {
     public static InvalidClientException missingAddress() {
         return new InvalidClientException("client.invalid.address", "Client address must not be null");
     }
+
+    public static InvalidClientException missingProject() {
+        return new InvalidClientException("client.invalid.project", "Client project must not be null");
+    }
 }

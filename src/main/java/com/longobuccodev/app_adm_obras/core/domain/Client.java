@@ -2,6 +2,8 @@ package com.longobuccodev.app_adm_obras.core.domain;
 
 import com.longobuccodev.app_adm_obras.core.exception.InvalidClientException;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -23,7 +25,7 @@ public class Client {
     private String email;
     private String phone;
     private Address address;
-    private Set<Project> projects;
+    private final Set<Project> projects = new LinkedHashSet<>();
 
     public Client(UUID id, String name, String email, String phone, Address address, Set<Project> projects) {
         setId(id);
@@ -31,7 +33,9 @@ public class Client {
         setEmail(email);
         setPhone(phone);
         setAddress(address);
-        setProjects(projects);
+        if (projects != null) {
+            new ArrayList<>(projects).stream().filter(Objects::nonNull).forEach(this::addProject);
+        }
     }
 
     public UUID getId() {
@@ -75,11 +79,21 @@ public class Client {
     }
 
     public Set<Project> getProjects() {
-        return projects;
+        return Collections.unmodifiableSet(projects);
     }
 
-    public void setProjects(Set<Project> projects) {
-        this.projects = validateProjects(projects);
+    public void addProject(Project project) {
+        if (project == null) {
+            throw InvalidClientException.missingProject();
+        }
+        projects.add(project);
+        if (project.getClient() != this) {
+            project.setClient(this);
+        }
+    }
+
+    void removeProject(Project project) {
+        projects.remove(project);
     }
 
     @Override
@@ -132,12 +146,5 @@ public class Client {
             throw InvalidClientException.missingAddress();
         }
         return address;
-    }
-
-    private static Set<Project> validateProjects(Set<Project> projects) {
-        if (projects == null) {
-            return new LinkedHashSet<>();
-        }
-        return new LinkedHashSet<>(projects);
     }
 }

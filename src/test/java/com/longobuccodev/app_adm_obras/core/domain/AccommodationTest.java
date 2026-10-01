@@ -45,14 +45,14 @@ class AccommodationTest {
     }
 
     @Test
-    void shouldCopyEmployeesOnAssignment() {
-        Accommodation accommodation = newAccommodation();
+    void shouldCopyEmployeesOnConstructor() {
         Set<Employee> employees = new HashSet<>();
         employees.add(new Employee(null, "Joao da Silva", "joao@email.com", "529.982.247-25", null, null,
                 java.time.LocalDate.of(1990, 5, 20),
                 new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"), null, Employee.Role.MONTADOR));
 
-        accommodation.setEmployees(employees);
+        Accommodation accommodation = new Accommodation(null, " Maria  Souza ", "(11) 98888-7777",
+                newAddress(), 8, 30, null, null, employees, new BigDecimal("4500.00"));
         employees.clear();
 
         assertThat(accommodation.getEmployees()).hasSize(1);

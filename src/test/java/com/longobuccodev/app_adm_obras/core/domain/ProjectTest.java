@@ -21,13 +21,18 @@ class ProjectTest {
                 null);
     }
 
+    private static CostCenter newCostCenter() {
+        return new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81");
+    }
+
     private static Meal newMeal(MealType mealType, String price, int quantity) {
         return new Meal(null, "Restaurante do Ze", new BigDecimal(price), false, null, null,
                 mealType, quantity, LocalDate.now());
     }
 
     private static Project newProject() {
-        return new Project(null, " os-1234 ", "Obra de reforma ", LocalDate.of(2026, 1, 10), null,
+        return new Project(null, " os-1234 ", "Obra de reforma ", newCostCenter(),
+                LocalDate.of(2026, 1, 10), null,
                 newClient(), null, null, null);
     }
 
@@ -48,7 +53,8 @@ class ProjectTest {
     void shouldKeepProvidedIdAndGenerateWhenNull() {
         UUID id = UUID.randomUUID();
 
-        assertThat(new Project(id, "OS-1234", "Obra de reforma", LocalDate.of(2026, 1, 10), null,
+        assertThat(new Project(id, "OS-1234", "Obra de reforma", newCostCenter(),
+                LocalDate.of(2026, 1, 10), null,
                 newClient(), null, null, false).getId()).isEqualTo(id);
         assertThat(newProject().getId()).isNotNull();
     }
@@ -93,6 +99,15 @@ class ProjectTest {
                 .extracting("errorCode").isEqualTo("project.invalid.description.length");
         assertThatThrownBy(() -> project.setDescription("a".repeat(501)))
                 .isInstanceOf(InvalidProjectException.class);
+    }
+
+    @Test
+    void shouldRejectMissingCostCenter() {
+        Project project = newProject();
+
+        assertThatThrownBy(() -> project.setCostCenter(null))
+                .isInstanceOf(InvalidProjectException.class)
+                .extracting("errorCode").isEqualTo("project.invalid.cost_center");
     }
 
     @Test
@@ -196,16 +211,17 @@ class ProjectTest {
 
     @Test
     void shouldSumAccommodationsInTotalPrice() {
-        Project project = newProject();
         Set<Accommodation> accommodations = new HashSet<>();
         accommodations.add(new Accommodation(null, "Maria Souza", "11988887777",
                 new Address(null, "Rua das Flores", "120", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"),
-                8, 30, false, project, null, new BigDecimal("1000.00")));
+                8, 30, false, null, null, new BigDecimal("1000.00")));
         accommodations.add(new Accommodation(null, "Jose Lima", "11988887778",
                 new Address(null, "Rua das Flores", "121", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"),
-                4, 15, false, project, null, new BigDecimal("500.50")));
+                4, 15, false, null, null, new BigDecimal("500.50")));
 
-        project.setAccommodations(accommodations);
+        Project project = new Project(null, " os-1234 ", "Obra de reforma ", newCostCenter(),
+                LocalDate.of(2026, 1, 10), null,
+                newClient(), accommodations, null, null);
         accommodations.clear();
 
         assertThat(project.getAccommodations()).hasSize(2);
@@ -251,7 +267,8 @@ class ProjectTest {
 
     @Test
     void shouldValidateOnConstructor() {
-        assertThatThrownBy(() -> new Project(null, null, "Obra de reforma", LocalDate.of(2026, 1, 10), null,
+        assertThatThrownBy(() -> new Project(null, null, "Obra de reforma", newCostCenter(),
+                LocalDate.of(2026, 1, 10), null,
                 newClient(), null, null, false))
                 .isInstanceOf(InvalidProjectException.class);
     }
