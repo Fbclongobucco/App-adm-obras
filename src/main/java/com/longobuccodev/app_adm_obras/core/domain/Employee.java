@@ -3,7 +3,6 @@ package com.longobuccodev.app_adm_obras.core.domain;
 import com.longobuccodev.app_adm_obras.core.exception.InvalidEmployeeException;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -34,7 +33,7 @@ public class Employee {
     private Role role;
 
     public Employee(UUID id, String name, String email, String cpf, String phone, Address address,
-                    LocalDate birthDate, CostCenter costCenter, Set<Project> projects, Role role) {
+                    LocalDate birthDate, CostCenter costCenter, Role role) {
         setId(id);
         setName(name);
         setEmail(email);
@@ -44,9 +43,6 @@ public class Employee {
         setBirthDate(birthDate);
         setCostCenter(costCenter);
         setRole(role);
-        if (projects != null) {
-            new ArrayList<>(projects).stream().filter(Objects::nonNull).forEach(this::addProject);
-        }
     }
 
     public UUID getId() {

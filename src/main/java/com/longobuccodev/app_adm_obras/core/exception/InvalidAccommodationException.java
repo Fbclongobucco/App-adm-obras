@@ -50,6 +50,13 @@ public class InvalidAccommodationException extends CoreDomainException {
         );
     }
 
+    public static InvalidAccommodationException missingEmployee() {
+        return new InvalidAccommodationException(
+                "accommodation.invalid.employee",
+                "Accommodation employee must not be null"
+        );
+    }
+
     public static InvalidAccommodationException invalidTotalPrice(BigDecimal totalPrice) {
         return new InvalidAccommodationException(
                 "accommodation.invalid.total_price",

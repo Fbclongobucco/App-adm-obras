@@ -16,13 +16,15 @@ public final class EmployeeMapper {
 
     public static Employee toDomain(EmployeeRequestDTO dto, CostCenter costCenter) {
         return new Employee(null, dto.name(), dto.email(), dto.cpf(), dto.phone(),
-                AddressMapper.toDomain(dto.address()), dto.birthDate(), costCenter, null, dto.role());
+                AddressMapper.toDomain(dto.address()), dto.birthDate(), costCenter, dto.role());
     }
 
     public static Employee toDomain(Employee existing, EmployeeRequestDTO dto, CostCenter costCenter) {
-        return new Employee(existing.getId(), dto.name(), dto.email(), dto.cpf(), dto.phone(),
+        Employee employee = new Employee(existing.getId(), dto.name(), dto.email(), dto.cpf(), dto.phone(),
                 AddressMapper.toDomain(AddressMapper.idOf(existing.getAddress()), dto.address()),
-                dto.birthDate(), costCenter, existing.getProjects(), dto.role());
+                dto.birthDate(), costCenter, dto.role());
+        existing.getProjects().forEach(employee::addProject);
+        return employee;
     }
 
     public static EmployeeSummaryDTO toSummary(Employee employee) {

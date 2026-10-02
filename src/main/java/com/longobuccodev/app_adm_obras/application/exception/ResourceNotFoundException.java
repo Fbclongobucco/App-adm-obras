@@ -46,4 +46,8 @@ public class ResourceNotFoundException extends RuntimeException {
     public static ResourceNotFoundException meal(UUID id) {
         return new ResourceNotFoundException("meal.not_found", "Meal not found: " + id);
     }
+
+    public static ResourceNotFoundException user(UUID id) {
+        return new ResourceNotFoundException("user.not_found", "User not found: " + id);
+    }
 }

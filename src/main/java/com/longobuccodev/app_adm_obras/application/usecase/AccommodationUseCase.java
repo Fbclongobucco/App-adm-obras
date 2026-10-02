@@ -2,13 +2,16 @@ package com.longobuccodev.app_adm_obras.application.usecase;
 
 import com.longobuccodev.app_adm_obras.application.dto.AccommodationRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.AccommodationResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.application.mapper.AccommodationMapper;
+import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
 import com.longobuccodev.app_adm_obras.core.repository.AccommodationRepository;
 import com.longobuccodev.app_adm_obras.core.repository.EmployeeRepository;
+import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 
 import java.util.List;
@@ -43,6 +46,10 @@ public class AccommodationUseCase {
         return accommodationRepository.findAll().stream()
                 .map(AccommodationMapper::toResponse)
                 .toList();
+    }
+
+    public PageResponseDTO<AccommodationResponseDTO> findAll(PageRequest request) {
+        return PageMapper.toResponse(accommodationRepository.findAll(request), AccommodationMapper::toResponse);
     }
 
     public List<AccommodationResponseDTO> findByProjectId(UUID projectId) {

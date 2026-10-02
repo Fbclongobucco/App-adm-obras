@@ -1,8 +1,10 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
+import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.dto.ProjectRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.ProjectResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
+import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.application.mapper.ProjectMapper;
 import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
@@ -15,6 +17,7 @@ import com.longobuccodev.app_adm_obras.core.repository.ClientRepository;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
 import com.longobuccodev.app_adm_obras.core.repository.EmployeeRepository;
 import com.longobuccodev.app_adm_obras.core.repository.MealRepository;
+import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 
 import java.util.List;
@@ -56,6 +59,10 @@ public class ProjectUseCase {
         return projectRepository.findAll().stream()
                 .map(ProjectMapper::toResponse)
                 .toList();
+    }
+
+    public PageResponseDTO<ProjectResponseDTO> findAll(PageRequest request) {
+        return PageMapper.toResponse(projectRepository.findAll(request), ProjectMapper::toResponse);
     }
 
     public ProjectResponseDTO update(UUID id, ProjectRequestDTO dto) {

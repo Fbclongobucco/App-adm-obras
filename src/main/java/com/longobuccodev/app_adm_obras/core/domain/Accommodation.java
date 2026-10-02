@@ -3,6 +3,7 @@ package com.longobuccodev.app_adm_obras.core.domain;
 import com.longobuccodev.app_adm_obras.core.exception.InvalidAccommodationException;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -27,12 +28,11 @@ public class Accommodation {
     private Integer days;
     private Boolean isContract;
     private Project project;
-    private final Set<Employee> employees;
+    private final Set<Employee> employees = new LinkedHashSet<>();
     private BigDecimal totalPrice;
 
     public Accommodation(UUID id, String hostName, String hostPhone, Address address, Integer capacity,
-                         Integer days, Boolean isContract, Project project, Set<Employee> employees,
-                         BigDecimal totalPrice) {
+                         Integer days, Boolean isContract, Project project, BigDecimal totalPrice) {
         setId(id);
         setHostName(hostName);
         setHostPhone(hostPhone);
@@ -40,7 +40,6 @@ public class Accommodation {
         setCapacity(capacity);
         setDays(days);
         setContract(isContract);
-        this.employees = validateEmployees(employees);
         setTotalPrice(totalPrice);
         setProject(project);
     }
@@ -124,7 +123,18 @@ public class Accommodation {
     }
 
     public Set<Employee> getEmployees() {
-        return employees;
+        return Collections.unmodifiableSet(employees);
+    }
+
+    public void addEmployee(Employee employee) {
+        if (employee == null) {
+            throw InvalidAccommodationException.missingEmployee();
+        }
+        employees.add(employee);
+    }
+
+    public void removeEmployee(Employee employee) {
+        employees.remove(employee);
     }
 
     public BigDecimal getTotalPrice() {
@@ -199,12 +209,5 @@ public class Accommodation {
             throw InvalidAccommodationException.invalidTotalPrice(totalPrice);
         }
         return totalPrice;
-    }
-
-    private static Set<Employee> validateEmployees(Set<Employee> employees) {
-        if (employees == null) {
-            return new LinkedHashSet<>();
-        }
-        return new LinkedHashSet<>(employees);
     }
 }

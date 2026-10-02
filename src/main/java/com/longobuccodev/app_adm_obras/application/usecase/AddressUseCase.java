@@ -2,10 +2,13 @@ package com.longobuccodev.app_adm_obras.application.usecase;
 
 import com.longobuccodev.app_adm_obras.application.dto.AddressRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.AddressResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.application.mapper.AddressMapper;
+import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.core.domain.Address;
 import com.longobuccodev.app_adm_obras.core.repository.AddressRepository;
+import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,6 +33,10 @@ public class AddressUseCase {
         return addressRepository.findAll().stream()
                 .map(AddressMapper::toResponse)
                 .toList();
+    }
+
+    public PageResponseDTO<AddressResponseDTO> findAll(PageRequest request) {
+        return PageMapper.toResponse(addressRepository.findAll(request), AddressMapper::toResponse);
     }
 
     public AddressResponseDTO update(UUID id, AddressRequestDTO dto) {

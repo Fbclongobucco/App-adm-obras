@@ -13,8 +13,9 @@ public interface ProjectRepository {
 
     Project save(Project project);
     Project findById(UUID id);
-    Project findByName(String name);
+    Project findByOs(String os);
     List<Project> findAll();
+    Page<Project> findAll(PageRequest request);
     List<Project> findByClient(Client client);
     List<Project> findByCostCenter(CostCenter costCenter);
     List<Project> findByEmployee(Employee employee);

@@ -11,6 +11,7 @@ public interface CostCenterRepository {
     CostCenter findById(UUID id);
     CostCenter findByName(String name);
     List<CostCenter> findAll();
+    Page<CostCenter> findAll(PageRequest request);
     void delete(CostCenter costCenter);
     void deleteById(UUID id);
     void update(CostCenter costCenter);

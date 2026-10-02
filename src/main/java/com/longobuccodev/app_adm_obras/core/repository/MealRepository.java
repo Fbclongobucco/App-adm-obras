@@ -10,6 +10,7 @@ public interface MealRepository {
 
     Meal save(Meal meal);
     List<Meal> findAll();
+    Page<Meal> findAll(PageRequest request);
     List<Meal> findByEmployee(Employee employee);
     List<Meal> findByCostCenter(CostCenter costCenter);
     List<Meal> findByClient(Client client);

@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -18,23 +17,23 @@ class RelationshipSyncTest {
     }
 
     private static Client newClient(String name) {
-        return new Client(null, name, "contato@alfa.com", "1133334444", newAddress(), null);
+        return new Client(null, name, "contato@alfa.com", "1133334444", newAddress());
     }
 
     private static Project newProject(Client client) {
         return new Project(null, "OS-1234", "Obra de reforma",
                 new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"), LocalDate.of(2026, 1, 10), null,
-                client, null, null, false);
+                client, false);
     }
 
     private static Accommodation newAccommodation(Project project, String totalPrice) {
-        return new Accommodation(null, "Maria Souza", "11988887777", newAddress(), 8, 30, false, project, null,
+        return new Accommodation(null, "Maria Souza", "11988887777", newAddress(), 8, 30, false, project,
                 new BigDecimal(totalPrice));
     }
 
     private static Employee newEmployee() {
         return new Employee(null, "Joao da Silva", "joao@email.com", "529.982.247-25", null, null,
-                LocalDate.of(1990, 5, 20), new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"), null,
+                LocalDate.of(1990, 5, 20), new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"),
                 Role.MONTADOR);
     }
 
@@ -142,12 +141,11 @@ class RelationshipSyncTest {
     }
 
     @Test
-    void shouldLinkEmployeeProjectsOnConstructor() {
+    void shouldLinkEmployeeProjectsWhenProjectIsAdded() {
         Project project = newProject(newClient("Construtora Alfa"));
+        Employee employee = newEmployee();
 
-        Employee employee = new Employee(null, "Joao da Silva", "joao@email.com", "529.982.247-25", null, null,
-                LocalDate.of(1990, 5, 20), new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"),
-                Set.of(project), Role.MONTADOR);
+        employee.addProject(project);
 
         assertThat(project.getEmployees()).containsExactly(employee);
     }

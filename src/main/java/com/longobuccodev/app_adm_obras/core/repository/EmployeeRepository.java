@@ -19,6 +19,7 @@ public interface EmployeeRepository {
     List<Employee> findByClient(Client client);
     List<Employee> findByProject(Project project);
     List<Employee> findAll();
+    Page<Employee> findAll(PageRequest request);
     void delete(Employee employee);
     void deleteById(UUID id);
     void update(Employee employee);

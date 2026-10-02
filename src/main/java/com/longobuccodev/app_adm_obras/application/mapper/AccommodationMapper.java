@@ -61,7 +61,7 @@ public final class AccommodationMapper {
 
     private static Accommodation toDomain(UUID id, UUID addressId, AccommodationRequestDTO dto, Project project,
                                           Set<Employee> employees) {
-        return new Accommodation(
+        Accommodation accommodation = new Accommodation(
                 id,
                 dto.hostName(),
                 dto.hostPhone(),
@@ -70,8 +70,11 @@ public final class AccommodationMapper {
                 dto.days(),
                 dto.isContract(),
                 project,
-                employees,
                 dto.totalPrice()
         );
+        if (employees != null) {
+            employees.forEach(accommodation::addEmployee);
+        }
+        return accommodation;
     }
 }

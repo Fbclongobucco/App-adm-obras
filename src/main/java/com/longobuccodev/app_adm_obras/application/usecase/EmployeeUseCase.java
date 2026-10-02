@@ -2,12 +2,15 @@ package com.longobuccodev.app_adm_obras.application.usecase;
 
 import com.longobuccodev.app_adm_obras.application.dto.EmployeeRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.EmployeeResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.application.mapper.EmployeeMapper;
+import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
 import com.longobuccodev.app_adm_obras.core.repository.EmployeeRepository;
+import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +38,10 @@ public class EmployeeUseCase {
         return employeeRepository.findAll().stream()
                 .map(EmployeeMapper::toResponse)
                 .toList();
+    }
+
+    public PageResponseDTO<EmployeeResponseDTO> findAll(PageRequest request) {
+        return PageMapper.toResponse(employeeRepository.findAll(request), EmployeeMapper::toResponse);
     }
 
     public List<EmployeeResponseDTO> findByCostCenterId(UUID costCenterId) {

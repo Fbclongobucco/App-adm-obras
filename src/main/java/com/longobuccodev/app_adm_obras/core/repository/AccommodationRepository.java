@@ -10,6 +10,7 @@ public interface AccommodationRepository {
     Accommodation findById(UUID id);
     Accommodation findByHostName(String hostName);
     List<Accommodation> findAll();
+    Page<Accommodation> findAll(PageRequest request);
     List<Accommodation> findByProjectId(UUID projectId);
     void delete(Accommodation accommodation);
     void deleteById(UUID id);

@@ -2,7 +2,6 @@ package com.longobuccodev.app_adm_obras.core.domain;
 
 import com.longobuccodev.app_adm_obras.core.exception.InvalidClientException;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -27,15 +26,12 @@ public class Client {
     private Address address;
     private final Set<Project> projects = new LinkedHashSet<>();
 
-    public Client(UUID id, String name, String email, String phone, Address address, Set<Project> projects) {
+    public Client(UUID id, String name, String email, String phone, Address address) {
         setId(id);
         setName(name);
         setEmail(email);
         setPhone(phone);
         setAddress(address);
-        if (projects != null) {
-            new ArrayList<>(projects).stream().filter(Objects::nonNull).forEach(this::addProject);
-        }
     }
 
     public UUID getId() {

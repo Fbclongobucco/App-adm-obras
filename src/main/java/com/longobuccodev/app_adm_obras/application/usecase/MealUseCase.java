@@ -2,11 +2,14 @@ package com.longobuccodev.app_adm_obras.application.usecase;
 
 import com.longobuccodev.app_adm_obras.application.dto.MealRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.MealResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.application.mapper.MealMapper;
+import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.core.domain.Meal;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
 import com.longobuccodev.app_adm_obras.core.repository.MealRepository;
+import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 
 import java.util.List;
@@ -35,6 +38,10 @@ public class MealUseCase {
         return mealRepository.findAll().stream()
                 .map(MealMapper::toResponse)
                 .toList();
+    }
+
+    public PageResponseDTO<MealResponseDTO> findAll(PageRequest request) {
+        return PageMapper.toResponse(mealRepository.findAll(request), MealMapper::toResponse);
     }
 
     public List<MealResponseDTO> findByProjectId(UUID projectId) {

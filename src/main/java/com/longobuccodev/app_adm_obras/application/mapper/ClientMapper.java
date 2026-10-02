@@ -14,13 +14,14 @@ public final class ClientMapper {
     }
 
     public static Client toDomain(ClientRequestDTO dto) {
-        return new Client(null, dto.name(), dto.email(), dto.phone(), AddressMapper.toDomain(dto.address()), null);
+        return new Client(null, dto.name(), dto.email(), dto.phone(), AddressMapper.toDomain(dto.address()));
     }
 
     public static Client toDomain(Client existing, ClientRequestDTO dto) {
-        return new Client(existing.getId(), dto.name(), dto.email(), dto.phone(),
-                AddressMapper.toDomain(AddressMapper.idOf(existing.getAddress()), dto.address()),
-                existing.getProjects());
+        Client client = new Client(existing.getId(), dto.name(), dto.email(), dto.phone(),
+                AddressMapper.toDomain(AddressMapper.idOf(existing.getAddress()), dto.address()));
+        existing.getProjects().forEach(client::addProject);
+        return client;
     }
 
     public static ClientSummaryDTO toSummary(Client client) {

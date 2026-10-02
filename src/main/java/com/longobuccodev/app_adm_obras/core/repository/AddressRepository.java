@@ -12,12 +12,12 @@ public interface AddressRepository {
     Address findByCep(String cep);
     Address findByStreet(String street);
     Address findByNumber(String number);
-    Address findByComplement(String complement);
     Address findByNeighborhood(String neighborhood);
     Address findByCity(String city);
     Address findByState(String state);
     Address findByCountry(String country);
     List<Address> findAll();
+    Page<Address> findAll(PageRequest request);
     void delete(Address address);
     void deleteById(UUID id);
     void update(Address address);

@@ -5,8 +5,6 @@ import com.longobuccodev.app_adm_obras.core.domain.Client;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
 import org.junit.jupiter.api.Test;
 
-import java.util.Set;
-
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.address;
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.clientRequest;
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.project;
@@ -17,8 +15,8 @@ class ClientMapperTest {
     @Test
     void shouldKeepIdAddressAndProjectsWhenMappingOverExisting() {
         Project project = project();
-        Client existing = new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444", address(),
-                Set.of(project));
+        Client existing = new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444", address());
+        existing.addProject(project);
 
         Client updated = ClientMapper.toDomain(existing, clientRequest());
 
@@ -30,8 +28,8 @@ class ClientMapperTest {
     @Test
     void shouldMapDomainToResponseWithProjects() {
         Project project = project();
-        Client client = new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444", address(),
-                Set.of(project));
+        Client client = new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444", address());
+        client.addProject(project);
 
         ClientResponseDTO response = ClientMapper.toResponse(client);
 

@@ -2,10 +2,13 @@ package com.longobuccodev.app_adm_obras.application.usecase;
 
 import com.longobuccodev.app_adm_obras.application.dto.ClientRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.ClientResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.application.mapper.ClientMapper;
+import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
 import com.longobuccodev.app_adm_obras.core.repository.ClientRepository;
+import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +38,10 @@ public class ClientUseCase {
         return clientRepository.findAll().stream()
                 .map(ClientMapper::toResponse)
                 .toList();
+    }
+
+    public PageResponseDTO<ClientResponseDTO> findAll(PageRequest request) {
+        return PageMapper.toResponse(clientRepository.findAll(request), ClientMapper::toResponse);
     }
 
     public ClientResponseDTO update(UUID id, ClientRequestDTO dto) {

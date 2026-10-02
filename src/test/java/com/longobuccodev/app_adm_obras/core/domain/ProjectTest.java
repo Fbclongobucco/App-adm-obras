@@ -6,8 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,8 +15,7 @@ class ProjectTest {
 
     private static Client newClient() {
         return new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444",
-                new Address(null, "Rua das Flores", "120", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"),
-                null);
+                new Address(null, "Rua das Flores", "120", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"));
     }
 
     private static CostCenter newCostCenter() {
@@ -33,7 +30,7 @@ class ProjectTest {
     private static Project newProject() {
         return new Project(null, " os-1234 ", "Obra de reforma ", newCostCenter(),
                 LocalDate.of(2026, 1, 10), null,
-                newClient(), null, null, null);
+                newClient(), null);
     }
 
     @Test
@@ -55,7 +52,7 @@ class ProjectTest {
 
         assertThat(new Project(id, "OS-1234", "Obra de reforma", newCostCenter(),
                 LocalDate.of(2026, 1, 10), null,
-                newClient(), null, null, false).getId()).isEqualTo(id);
+                newClient(), false).getId()).isEqualTo(id);
         assertThat(newProject().getId()).isNotNull();
     }
 
@@ -211,18 +208,16 @@ class ProjectTest {
 
     @Test
     void shouldSumAccommodationsInTotalPrice() {
-        Set<Accommodation> accommodations = new HashSet<>();
-        accommodations.add(new Accommodation(null, "Maria Souza", "11988887777",
+        Accommodation first = new Accommodation(null, "Maria Souza", "11988887777",
                 new Address(null, "Rua das Flores", "120", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"),
-                8, 30, false, null, null, new BigDecimal("1000.00")));
-        accommodations.add(new Accommodation(null, "Jose Lima", "11988887778",
+                8, 30, false, null, new BigDecimal("1000.00"));
+        Accommodation second = new Accommodation(null, "Jose Lima", "11988887778",
                 new Address(null, "Rua das Flores", "121", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"),
-                4, 15, false, null, null, new BigDecimal("500.50")));
+                4, 15, false, null, new BigDecimal("500.50"));
 
-        Project project = new Project(null, " os-1234 ", "Obra de reforma ", newCostCenter(),
-                LocalDate.of(2026, 1, 10), null,
-                newClient(), accommodations, null, null);
-        accommodations.clear();
+        Project project = newProject();
+        project.addAccommodation(first);
+        project.addAccommodation(second);
 
         assertThat(project.getAccommodations()).hasSize(2);
         assertThat(project.getTotalPrice()).isEqualByComparingTo("1500.50");
@@ -269,7 +264,7 @@ class ProjectTest {
     void shouldValidateOnConstructor() {
         assertThatThrownBy(() -> new Project(null, null, "Obra de reforma", newCostCenter(),
                 LocalDate.of(2026, 1, 10), null,
-                newClient(), null, null, false))
+                newClient(), false))
                 .isInstanceOf(InvalidProjectException.class);
     }
 }

@@ -11,6 +11,7 @@ public interface ClientRepository {
     Client findById(UUID id);
     Client findByProjectId(UUID projectId);
     List<Client> findAll();
+    Page<Client> findAll(PageRequest request);
     void delete(Client client);
     void deleteById(UUID id);
     void update(Client client);

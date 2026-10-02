@@ -75,7 +75,13 @@ public final class ProjectMapper {
                                  Set<Accommodation> accommodations, Set<Employee> employees,
                                  Meal lunch, Meal dinner) {
         Project project = new Project(id, dto.os(), dto.description(), costCenter, dto.startDate(),
-                dto.endDate(), client, accommodations, employees, dto.isCompleted());
+                dto.endDate(), client, dto.isCompleted());
+        if (accommodations != null) {
+            accommodations.forEach(project::addAccommodation);
+        }
+        if (employees != null) {
+            employees.forEach(project::addEmployee);
+        }
         project.setLunch(lunch);
         project.setDinner(dinner);
         return project;

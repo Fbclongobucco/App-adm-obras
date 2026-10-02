@@ -2,10 +2,13 @@ package com.longobuccodev.app_adm_obras.application.usecase;
 
 import com.longobuccodev.app_adm_obras.application.dto.CostCenterRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.CostCenterResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.application.mapper.CostCenterMapper;
+import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
+import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,6 +33,10 @@ public class CostCenterUseCase {
         return costCenterRepository.findAll().stream()
                 .map(CostCenterMapper::toResponse)
                 .toList();
+    }
+
+    public PageResponseDTO<CostCenterResponseDTO> findAll(PageRequest request) {
+        return PageMapper.toResponse(costCenterRepository.findAll(request), CostCenterMapper::toResponse);
     }
 
     public CostCenterResponseDTO update(UUID id, CostCenterRequestDTO dto) {

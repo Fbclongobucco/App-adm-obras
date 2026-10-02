@@ -3,8 +3,6 @@ package com.longobuccodev.app_adm_obras.core.domain;
 import com.longobuccodev.app_adm_obras.core.exception.InvalidClientException;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,7 +16,7 @@ class ClientTest {
 
     private static Client newClient() {
         return new Client(null, "Construtora  Alfa ", "Contato@Alfa.com", "(11) 3333-4444",
-                newAddress(), null);
+                newAddress());
     }
 
     @Test
@@ -36,23 +34,17 @@ class ClientTest {
     void shouldKeepProvidedIdAndGenerateWhenNull() {
         UUID id = UUID.randomUUID();
 
-        assertThat(new Client(id, "Construtora Alfa", "contato@alfa.com", "1133334444", newAddress(), null)
+        assertThat(new Client(id, "Construtora Alfa", "contato@alfa.com", "1133334444", newAddress())
                 .getId()).isEqualTo(id);
         assertThat(newClient().getId()).isNotNull();
     }
 
     @Test
-    void shouldIgnoreNullProjectsAndCopyOnConstructor() {
-        Set<Project> projects = new HashSet<>();
-        projects.add(null);
+    void shouldRejectNullProject() {
+        Client client = newClient();
 
-        Client client = new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444",
-                newAddress(), projects);
-        projects.add(new Project(null, "OS-1", "Obra",
-                new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"), java.time.LocalDate.now(), null,
-                newClient(), null, null, false));
-
-        assertThat(client.getProjects()).isEmpty();
+        assertThatThrownBy(() -> client.addProject(null))
+                .isInstanceOf(InvalidClientException.class);
     }
 
     @Test
@@ -111,7 +103,7 @@ class ClientTest {
 
     @Test
     void shouldValidateOnConstructor() {
-        assertThatThrownBy(() -> new Client(null, null, "contato@alfa.com", "1133334444", newAddress(), null))
+        assertThatThrownBy(() -> new Client(null, null, "contato@alfa.com", "1133334444", newAddress()))
                 .isInstanceOf(InvalidClientException.class);
     }
 }

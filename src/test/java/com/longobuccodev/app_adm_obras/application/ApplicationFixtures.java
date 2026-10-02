@@ -63,12 +63,12 @@ public final class ApplicationFixtures {
     }
 
     public static Client client() {
-        return new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444", address(), null);
+        return new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444", address());
     }
 
     public static Employee employee() {
         return new Employee(null, "Joao da Silva", "joao@email.com", "529.982.247-25", null, address(),
-                LocalDate.of(1990, 5, 20), costCenter(), null, Role.MONTADOR);
+                LocalDate.of(1990, 5, 20), costCenter(), Role.MONTADOR);
     }
 
     public static Meal meal(MealType mealType) {
@@ -77,12 +77,12 @@ public final class ApplicationFixtures {
     }
 
     public static Accommodation accommodation() {
-        return new Accommodation(null, "Maria Souza", "11988887777", address(), 8, 30, false, null, null,
+        return new Accommodation(null, "Maria Souza", "11988887777", address(), 8, 30, false, null,
                 new BigDecimal("1000.00"));
     }
 
     public static Project project() {
         return new Project(null, "OS-1234", "Obra de reforma", costCenter(), LocalDate.of(2026, 1, 10), null,
-                client(), null, null, false);
+                client(), false);
     }
 }

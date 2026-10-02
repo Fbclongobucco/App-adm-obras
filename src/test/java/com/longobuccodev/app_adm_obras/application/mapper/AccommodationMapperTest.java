@@ -32,17 +32,16 @@ class AccommodationMapperTest {
 
     private static Employee newEmployee() {
         return new Employee(null, "Joao da Silva", "joao@email.com", "529.982.247-25", null, null,
-                LocalDate.of(1990, 5, 20), new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"), null,
+                LocalDate.of(1990, 5, 20), new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"),
                 Employee.Role.MONTADOR);
     }
 
     private static Project newProject() {
         Client client = new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444",
-                new Address(null, "Rua das Flores", "120", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"),
-                null);
+                new Address(null, "Rua das Flores", "120", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"));
         return new Project(null, "OS-1234", "Obra de reforma",
                 new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"), LocalDate.of(2026, 1, 10), null,
-                client, null, null, false);
+                client, false);
     }
 
     @Test

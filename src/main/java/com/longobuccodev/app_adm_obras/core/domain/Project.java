@@ -5,7 +5,6 @@ import com.longobuccodev.app_adm_obras.core.exception.InvalidProjectException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -37,8 +36,7 @@ public class Project {
     private Boolean isCompleted;
 
     public Project(UUID id, String os, String description, CostCenter costCenter, LocalDate startDate,
-                   LocalDate endDate, Client client, Set<Accommodation> accommodations, Set<Employee> employees,
-                   Boolean isCompleted) {
+                   LocalDate endDate, Client client, Boolean isCompleted) {
         setId(id);
         setOs(os);
         setDescription(description);
@@ -47,12 +45,6 @@ public class Project {
         setEndDate(endDate);
         setClient(client);
         setCompleted(isCompleted);
-        if (accommodations != null) {
-            new ArrayList<>(accommodations).stream().filter(Objects::nonNull).forEach(this::addAccommodation);
-        }
-        if (employees != null) {
-            new ArrayList<>(employees).stream().filter(Objects::nonNull).forEach(this::addEmployee);
-        }
         refreshTotalPrice();
     }
 

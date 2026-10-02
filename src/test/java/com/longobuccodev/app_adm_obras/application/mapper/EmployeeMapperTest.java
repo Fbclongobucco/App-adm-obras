@@ -7,7 +7,6 @@ import com.longobuccodev.app_adm_obras.core.exception.InvalidEmployeeException;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-import java.util.Set;
 
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.address;
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.costCenter;
@@ -29,7 +28,8 @@ class EmployeeMapperTest {
     void shouldKeepIdAddressAndProjectsWhenMappingOverExisting() {
         Project project = project();
         Employee existing = new Employee(null, "Joao da Silva", "joao@email.com", "529.982.247-25", null,
-                address(), LocalDate.of(1990, 5, 20), costCenter(), Set.of(project), Employee.Role.MONTADOR);
+                address(), LocalDate.of(1990, 5, 20), costCenter(), Employee.Role.MONTADOR);
+        existing.addProject(project);
 
         Employee updated = EmployeeMapper.toDomain(existing, employeeRequest(null), costCenter());
 
@@ -42,7 +42,8 @@ class EmployeeMapperTest {
     void shouldMapDomainToResponseWithNestedObjects() {
         Project project = project();
         Employee employee = new Employee(null, "Joao da Silva", "joao@email.com", "529.982.247-25", null,
-                address(), LocalDate.of(1990, 5, 20), costCenter(), Set.of(project), Employee.Role.MONTADOR);
+                address(), LocalDate.of(1990, 5, 20), costCenter(), Employee.Role.MONTADOR);
+        employee.addProject(project);
 
         EmployeeResponseDTO response = EmployeeMapper.toResponse(employee);
 

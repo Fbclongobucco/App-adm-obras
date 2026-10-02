@@ -4,8 +4,6 @@ import com.longobuccodev.app_adm_obras.core.exception.InvalidAccommodationExcept
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,7 +17,7 @@ class AccommodationTest {
 
     private static Accommodation newAccommodation() {
         return new Accommodation(null, " Maria  Souza ", "(11) 98888-7777", newAddress(), 8, 30,
-                null, null, null, new BigDecimal("4500.00"));
+                null, null, new BigDecimal("4500.00"));
     }
 
     @Test
@@ -40,22 +38,31 @@ class AccommodationTest {
         UUID id = UUID.randomUUID();
 
         assertThat(new Accommodation(id, "Maria Souza", "11988887777", newAddress(), 8, 30,
-                true, null, null, BigDecimal.TEN).getId()).isEqualTo(id);
+                true, null, BigDecimal.TEN).getId()).isEqualTo(id);
         assertThat(newAccommodation().getId()).isNotNull();
     }
 
     @Test
-    void shouldCopyEmployeesOnConstructor() {
-        Set<Employee> employees = new HashSet<>();
-        employees.add(new Employee(null, "Joao da Silva", "joao@email.com", "529.982.247-25", null, null,
+    void shouldAddAndRemoveEmployees() {
+        Employee employee = new Employee(null, "Joao da Silva", "joao@email.com", "529.982.247-25", null, null,
                 java.time.LocalDate.of(1990, 5, 20),
-                new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"), null, Employee.Role.MONTADOR));
+                new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81"), Employee.Role.MONTADOR);
+        Accommodation accommodation = newAccommodation();
 
-        Accommodation accommodation = new Accommodation(null, " Maria  Souza ", "(11) 98888-7777",
-                newAddress(), 8, 30, null, null, employees, new BigDecimal("4500.00"));
-        employees.clear();
+        accommodation.addEmployee(employee);
+        assertThat(accommodation.getEmployees()).containsExactly(employee);
 
-        assertThat(accommodation.getEmployees()).hasSize(1);
+        accommodation.removeEmployee(employee);
+        assertThat(accommodation.getEmployees()).isEmpty();
+    }
+
+    @Test
+    void shouldRejectNullEmployee() {
+        Accommodation accommodation = newAccommodation();
+
+        assertThatThrownBy(() -> accommodation.addEmployee(null))
+                .isInstanceOf(InvalidAccommodationException.class)
+                .extracting("errorCode").isEqualTo("accommodation.invalid.employee");
     }
 
     @Test
@@ -143,7 +150,7 @@ class AccommodationTest {
     @Test
     void shouldValidateOnConstructor() {
         assertThatThrownBy(() -> new Accommodation(null, null, "11988887777", newAddress(), 8, 30,
-                false, null, null, BigDecimal.TEN))
+                false, null, BigDecimal.TEN))
                 .isInstanceOf(InvalidAccommodationException.class);
     }
 }
