@@ -1,6 +1,6 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
-import com.longobuccodev.app_adm_obras.application.dto.ClientResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.client.ClientResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
 import com.longobuccodev.app_adm_obras.core.repository.ClientRepository;

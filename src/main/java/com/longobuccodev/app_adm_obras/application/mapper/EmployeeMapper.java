@@ -1,8 +1,8 @@
 package com.longobuccodev.app_adm_obras.application.mapper;
 
-import com.longobuccodev.app_adm_obras.application.dto.EmployeeRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.EmployeeResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.EmployeeSummaryDTO;
+import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeSummaryDTO;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
 

@@ -1,6 +1,6 @@
 package com.longobuccodev.app_adm_obras.application.mapper;
 
-import com.longobuccodev.app_adm_obras.application.dto.EmployeeResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeResponseDTO;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
 import com.longobuccodev.app_adm_obras.core.exception.InvalidEmployeeException;

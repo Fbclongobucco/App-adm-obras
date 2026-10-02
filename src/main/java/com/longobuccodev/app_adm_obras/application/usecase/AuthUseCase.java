@@ -1,7 +1,7 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
-import com.longobuccodev.app_adm_obras.application.dto.LoginRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.LoginResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.auth.LoginRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.auth.LoginResponseDTO;
 import com.longobuccodev.app_adm_obras.core.domain.User;
 import com.longobuccodev.app_adm_obras.core.exception.AuthenticationFailedException;
 import com.longobuccodev.app_adm_obras.core.repository.UserRepository;

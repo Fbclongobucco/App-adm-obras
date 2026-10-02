@@ -1,8 +1,8 @@
 package com.longobuccodev.app_adm_obras.infra.controllers;
 
-import com.longobuccodev.app_adm_obras.application.dto.AddressRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.AddressResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.address.AddressRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.address.AddressResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.usecase.AddressUseCase;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import org.springframework.http.HttpStatus;

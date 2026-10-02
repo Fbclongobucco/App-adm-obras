@@ -1,8 +1,8 @@
 package com.longobuccodev.app_adm_obras.application.mapper;
 
-import com.longobuccodev.app_adm_obras.application.dto.AccommodationRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.AccommodationResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.AccommodationSummaryDTO;
+import com.longobuccodev.app_adm_obras.application.dto.accommodation.AccommodationRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.accommodation.AccommodationResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.accommodation.AccommodationSummaryDTO;
 import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
 import com.longobuccodev.app_adm_obras.core.domain.Project;

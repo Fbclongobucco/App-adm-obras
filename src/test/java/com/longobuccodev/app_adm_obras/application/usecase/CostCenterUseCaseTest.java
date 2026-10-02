@@ -1,6 +1,6 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
-import com.longobuccodev.app_adm_obras.application.dto.CostCenterResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;

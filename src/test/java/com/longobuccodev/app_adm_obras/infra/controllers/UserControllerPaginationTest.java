@@ -1,7 +1,7 @@
 package com.longobuccodev.app_adm_obras.infra.controllers;
 
-import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.UserResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.user.UserResponseDTO;
 import com.longobuccodev.app_adm_obras.application.usecase.UserUseCase;
 import com.longobuccodev.app_adm_obras.core.domain.User.Role;
 import com.longobuccodev.app_adm_obras.core.repository.Page;

@@ -1,11 +1,11 @@
 package com.longobuccodev.app_adm_obras.application;
 
-import com.longobuccodev.app_adm_obras.application.dto.AddressRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.ClientRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.CostCenterRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.EmployeeRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.MealRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.ProjectRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.address.AddressRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.client.ClientRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.meal.MealRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.project.ProjectRequestDTO;
 import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
 import com.longobuccodev.app_adm_obras.core.domain.Address;
 import com.longobuccodev.app_adm_obras.core.domain.Client;

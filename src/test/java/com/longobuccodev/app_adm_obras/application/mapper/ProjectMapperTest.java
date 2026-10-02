@@ -1,7 +1,7 @@
 package com.longobuccodev.app_adm_obras.application.mapper;
 
-import com.longobuccodev.app_adm_obras.application.dto.ProjectResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.ProjectSummaryDTO;
+import com.longobuccodev.app_adm_obras.application.dto.project.ProjectResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.project.ProjectSummaryDTO;
 import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;

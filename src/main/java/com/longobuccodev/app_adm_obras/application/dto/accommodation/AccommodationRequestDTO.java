@@ -1,5 +1,6 @@
-package com.longobuccodev.app_adm_obras.application.dto;
+package com.longobuccodev.app_adm_obras.application.dto.accommodation;
 
+import com.longobuccodev.app_adm_obras.application.dto.address.AddressRequestDTO;
 import java.math.BigDecimal;
 import java.util.Set;
 import java.util.UUID;

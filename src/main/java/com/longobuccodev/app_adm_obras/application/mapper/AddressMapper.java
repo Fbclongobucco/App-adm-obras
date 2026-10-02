@@ -1,7 +1,7 @@
 package com.longobuccodev.app_adm_obras.application.mapper;
 
-import com.longobuccodev.app_adm_obras.application.dto.AddressRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.AddressResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.address.AddressRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.address.AddressResponseDTO;
 import com.longobuccodev.app_adm_obras.core.domain.Address;
 
 import java.util.UUID;

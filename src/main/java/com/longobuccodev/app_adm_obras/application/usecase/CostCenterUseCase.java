@@ -1,8 +1,8 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
-import com.longobuccodev.app_adm_obras.application.dto.CostCenterRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.CostCenterResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.application.mapper.CostCenterMapper;
 import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;

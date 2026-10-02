@@ -1,8 +1,8 @@
 package com.longobuccodev.app_adm_obras.application.mapper;
 
-import com.longobuccodev.app_adm_obras.application.dto.MealRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.MealResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.MealSummaryDTO;
+import com.longobuccodev.app_adm_obras.application.dto.meal.MealRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.meal.MealResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.meal.MealSummaryDTO;
 import com.longobuccodev.app_adm_obras.core.domain.Meal;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
 

@@ -1,5 +1,8 @@
-package com.longobuccodev.app_adm_obras.application.dto;
+package com.longobuccodev.app_adm_obras.application.dto.employee;
 
+import com.longobuccodev.app_adm_obras.application.dto.address.AddressResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.project.ProjectSummaryDTO;
 import com.longobuccodev.app_adm_obras.core.domain.Employee.Role;
 
 import java.time.LocalDate;

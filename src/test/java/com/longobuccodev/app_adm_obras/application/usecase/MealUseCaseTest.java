@@ -1,6 +1,6 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
-import com.longobuccodev.app_adm_obras.application.dto.MealResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.meal.MealResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.core.domain.Meal.MealType;
 import com.longobuccodev.app_adm_obras.core.domain.Project;

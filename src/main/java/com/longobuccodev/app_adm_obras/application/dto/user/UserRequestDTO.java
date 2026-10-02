@@ -1,4 +1,4 @@
-package com.longobuccodev.app_adm_obras.application.dto;
+package com.longobuccodev.app_adm_obras.application.dto.user;
 
 import com.longobuccodev.app_adm_obras.core.domain.User.Role;
 

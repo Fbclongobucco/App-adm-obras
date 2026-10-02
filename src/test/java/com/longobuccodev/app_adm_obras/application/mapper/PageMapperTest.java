@@ -1,6 +1,6 @@
 package com.longobuccodev.app_adm_obras.application.mapper;
 
-import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.core.repository.Page;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,8 +1,8 @@
 package com.longobuccodev.app_adm_obras.infra.controllers;
 
-import com.longobuccodev.app_adm_obras.application.dto.AccommodationRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.AccommodationResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.accommodation.AccommodationRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.accommodation.AccommodationResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.usecase.AccommodationUseCase;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import org.springframework.http.HttpStatus;

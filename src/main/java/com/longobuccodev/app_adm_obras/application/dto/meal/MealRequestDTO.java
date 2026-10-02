@@ -1,5 +1,6 @@
-package com.longobuccodev.app_adm_obras.application.dto;
+package com.longobuccodev.app_adm_obras.application.dto.meal;
 
+import com.longobuccodev.app_adm_obras.application.dto.address.AddressRequestDTO;
 import com.longobuccodev.app_adm_obras.core.domain.Meal.MealType;
 
 import java.math.BigDecimal;

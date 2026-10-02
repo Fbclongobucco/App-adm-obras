@@ -1,8 +1,8 @@
 package com.longobuccodev.app_adm_obras.infra.controllers;
 
-import com.longobuccodev.app_adm_obras.application.dto.CostCenterRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.CostCenterResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.usecase.CostCenterUseCase;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import org.springframework.http.HttpStatus;

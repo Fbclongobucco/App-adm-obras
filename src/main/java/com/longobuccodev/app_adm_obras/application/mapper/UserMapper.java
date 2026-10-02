@@ -1,7 +1,7 @@
 package com.longobuccodev.app_adm_obras.application.mapper;
 
-import com.longobuccodev.app_adm_obras.application.dto.UserRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.UserResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.user.UserRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.user.UserResponseDTO;
 import com.longobuccodev.app_adm_obras.core.domain.User;
 import com.longobuccodev.app_adm_obras.core.security.PasswordHasher;
 

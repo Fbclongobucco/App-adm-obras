@@ -1,7 +1,7 @@
 package com.longobuccodev.app_adm_obras.application.mapper;
 
-import com.longobuccodev.app_adm_obras.application.dto.CostCenterRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.CostCenterResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterResponseDTO;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 
 import java.util.UUID;

@@ -1,8 +1,8 @@
 package com.longobuccodev.app_adm_obras.infra.controllers;
 
-import com.longobuccodev.app_adm_obras.application.dto.EmployeeRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.EmployeeResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.usecase.EmployeeUseCase;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import org.springframework.http.HttpStatus;

@@ -1,4 +1,4 @@
-package com.longobuccodev.app_adm_obras.application.dto;
+package com.longobuccodev.app_adm_obras.application.dto.project;
 
 import java.time.LocalDate;
 import java.util.Set;

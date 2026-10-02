@@ -1,7 +1,7 @@
 package com.longobuccodev.app_adm_obras.infra.controllers;
 
-import com.longobuccodev.app_adm_obras.application.dto.LoginRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.LoginResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.auth.LoginRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.auth.LoginResponseDTO;
 import com.longobuccodev.app_adm_obras.application.usecase.AuthUseCase;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

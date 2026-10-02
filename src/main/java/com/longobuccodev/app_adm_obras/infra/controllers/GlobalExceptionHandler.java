@@ -1,6 +1,6 @@
 package com.longobuccodev.app_adm_obras.infra.controllers;
 
-import com.longobuccodev.app_adm_obras.application.dto.ErrorResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.common.ErrorResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.core.exception.AuthenticationFailedException;
 import com.longobuccodev.app_adm_obras.core.exception.CoreDomainException;

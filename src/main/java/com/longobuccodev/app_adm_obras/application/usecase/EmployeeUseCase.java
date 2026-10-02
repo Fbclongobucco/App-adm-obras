@@ -1,8 +1,8 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
-import com.longobuccodev.app_adm_obras.application.dto.EmployeeRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.EmployeeResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.PageResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.application.mapper.EmployeeMapper;
 import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;

@@ -1,8 +1,8 @@
 package com.longobuccodev.app_adm_obras.application.mapper;
 
-import com.longobuccodev.app_adm_obras.application.dto.ClientRequestDTO;
-import com.longobuccodev.app_adm_obras.application.dto.ClientResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.ClientSummaryDTO;
+import com.longobuccodev.app_adm_obras.application.dto.client.ClientRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.client.ClientResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.client.ClientSummaryDTO;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
 
 import java.util.LinkedHashSet;
