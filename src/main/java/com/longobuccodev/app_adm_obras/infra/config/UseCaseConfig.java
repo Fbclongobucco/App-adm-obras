@@ -1,6 +1,7 @@
 package com.longobuccodev.app_adm_obras.infra.config;
 
 import com.longobuccodev.app_adm_obras.application.usecase.AccommodationUseCase;
+import com.longobuccodev.app_adm_obras.application.usecase.AuthUseCase;
 import com.longobuccodev.app_adm_obras.application.usecase.AddressUseCase;
 import com.longobuccodev.app_adm_obras.application.usecase.ClientUseCase;
 import com.longobuccodev.app_adm_obras.application.usecase.CostCenterUseCase;
@@ -16,6 +17,8 @@ import com.longobuccodev.app_adm_obras.core.repository.EmployeeRepository;
 import com.longobuccodev.app_adm_obras.core.repository.MealRepository;
 import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 import com.longobuccodev.app_adm_obras.core.repository.UserRepository;
+import com.longobuccodev.app_adm_obras.core.security.AuthenticationGateway;
+import com.longobuccodev.app_adm_obras.core.security.PasswordHasher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -67,7 +70,12 @@ public class UseCaseConfig {
     }
 
     @Bean
-    public UserUseCase userUseCase(UserRepository userRepository) {
-        return new UserUseCase(userRepository);
+    public UserUseCase userUseCase(UserRepository userRepository, PasswordHasher passwordHasher) {
+        return new UserUseCase(userRepository, passwordHasher);
+    }
+
+    @Bean
+    public AuthUseCase authUseCase(AuthenticationGateway authenticationGateway, UserRepository userRepository) {
+        return new AuthUseCase(authenticationGateway, userRepository);
     }
 }

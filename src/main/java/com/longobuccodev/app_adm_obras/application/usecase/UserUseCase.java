@@ -7,8 +7,10 @@ import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundExc
 import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.application.mapper.UserMapper;
 import com.longobuccodev.app_adm_obras.core.domain.User;
+import com.longobuccodev.app_adm_obras.core.exception.InvalidUserException;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.core.repository.UserRepository;
+import com.longobuccodev.app_adm_obras.core.security.PasswordHasher;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,13 +18,21 @@ import java.util.UUID;
 public class UserUseCase {
 
     private final UserRepository userRepository;
+    private final PasswordHasher passwordHasher;
 
-    public UserUseCase(UserRepository userRepository) {
+    public UserUseCase(UserRepository userRepository, PasswordHasher passwordHasher) {
         this.userRepository = userRepository;
+        this.passwordHasher = passwordHasher;
     }
 
     public UserResponseDTO create(UserRequestDTO dto) {
-        return UserMapper.toResponse(userRepository.save(UserMapper.toDomain(dto)));
+        if (dto.password() == null || dto.password().isBlank()) {
+            throw InvalidUserException.missingPassword();
+        }
+        if (userRepository.findByEmail(dto.email()) != null) {
+            throw InvalidUserException.duplicateEmail(dto.email());
+        }
+        return UserMapper.toResponse(userRepository.save(UserMapper.toDomain(dto, passwordHasher)));
     }
 
     public UserResponseDTO findById(UUID id) {
@@ -40,7 +50,11 @@ public class UserUseCase {
     }
 
     public UserResponseDTO update(UUID id, UserRequestDTO dto) {
-        User updated = UserMapper.toDomain(findUser(id).getId(), dto);
+        User current = findUser(id);
+        User updated = UserMapper.toDomain(current.getId(), dto, passwordHasher);
+        if (updated.getPasswordHash() == null) {
+            updated.setPasswordHash(current.getPasswordHash());
+        }
         userRepository.update(updated);
         return UserMapper.toResponse(updated);
     }

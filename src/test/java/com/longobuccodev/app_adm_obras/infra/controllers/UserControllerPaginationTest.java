@@ -12,7 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -24,20 +24,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = UserController.class)
 @Import(com.longobuccodev.app_adm_obras.infra.security.SecurityConfig.class)
-@TestPropertySource(properties = {
-        "app.security.admin.username=admin",
-        "app.security.admin.password=admin123",
-        "app.security.operador.username=operador",
-        "app.security.operador.password=operador123"
-})
 class UserControllerPaginationTest {
+
 
     @Autowired
     private MockMvc mockMvc;
@@ -46,11 +40,12 @@ class UserControllerPaginationTest {
     private UserUseCase userUseCase;
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("sem parametros a paginacao deve usar a primeira pagina com 20 itens")
     void shouldUseFirstPageWithDefaultSize() throws Exception {
         when(userUseCase.findAll(any(PageRequest.class))).thenReturn(pageOf(0, 20, 3));
 
-        mockMvc.perform(get("/api/users").with(httpBasic("admin", "admin123")))
+        mockMvc.perform(get("/api/users"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(20))
@@ -61,12 +56,13 @@ class UserControllerPaginationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("os parametros page e size devem ser repassados ao caso de uso")
     void shouldForwardPageAndSizeQueryParams() throws Exception {
         when(userUseCase.findAll(any(PageRequest.class))).thenReturn(pageOf(2, 5, 3));
 
         mockMvc.perform(get("/api/users").param("page", "2").param("size", "5")
-                        .with(httpBasic("admin", "admin123")))
+                        )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(2))
                 .andExpect(jsonPath("$.size").value(5))
@@ -80,31 +76,34 @@ class UserControllerPaginationTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("pagina fora do limite deve ser rejeitada com 400")
     void shouldRejectInvalidPage() throws Exception {
         mockMvc.perform(get("/api/users").param("page", "-1")
-                        .with(httpBasic("admin", "admin123")))
+                        )
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(get("/api/users").param("size", "500")
-                        .with(httpBasic("admin", "admin123")))
+                        )
                 .andExpect(status().isBadRequest());
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("pagina nao numerica deve ser rejeitada com 400")
     void shouldRejectNonNumericPage() throws Exception {
         mockMvc.perform(get("/api/users").param("page", "abc")
-                        .with(httpBasic("admin", "admin123")))
+                        )
                 .andExpect(status().isBadRequest());
     }
 
     @Test
+    @WithMockUser(roles = "OPERADOR")
     @DisplayName("a listagem paginada deve continuar acessivel ao OPERADOR")
     void operadorShouldStillReadPaginatedList() throws Exception {
         when(userUseCase.findAll(any(PageRequest.class))).thenReturn(pageOf(0, 20, 3));
 
-        mockMvc.perform(get("/api/users").with(httpBasic("operador", "operador123")))
+        mockMvc.perform(get("/api/users"))
                 .andExpect(status().isOk());
     }
 

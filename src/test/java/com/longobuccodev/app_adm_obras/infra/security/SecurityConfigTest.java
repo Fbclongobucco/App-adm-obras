@@ -17,7 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -27,20 +27,14 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = {UserController.class, AddressController.class})
 @Import(SecurityConfig.class)
-@TestPropertySource(properties = {
-        "app.security.admin.username=admin",
-        "app.security.admin.password=admin123",
-        "app.security.operador.username=operador",
-        "app.security.operador.password=operador123"
-})
 class SecurityConfigTest {
+
 
     @Autowired
     private MockMvc mockMvc;
@@ -52,65 +46,64 @@ class SecurityConfigTest {
     private AddressUseCase addressUseCase;
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("ADMIN deve conseguir ler e criar usuarios")
     void adminShouldReadAndCreateUsers() throws Exception {
-        when(userUseCase.findAll(any(PageRequest.class)))
-                .thenReturn(new PageResponseDTO<>(List.of(userResponse()), 0, 20, 1, 1, true, true));
+        when(userUseCase.findAll(any(PageRequest.class))).thenReturn(paginatedUsers());
         when(userUseCase.create(any(UserRequestDTO.class))).thenReturn(userResponse());
 
-        mockMvc.perform(get("/api/users").with(httpBasic("admin", "admin123")))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/users")).andExpect(status().isOk());
         mockMvc.perform(post("/api/users")
-                        .with(httpBasic("admin", "admin123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isCreated());
     }
 
     @Test
+    @WithMockUser(roles = "OPERADOR")
     @DisplayName("OPERADOR deve conseguir ler mas nao criar usuarios")
     void operadorShouldReadButNotCreateUsers() throws Exception {
-        when(userUseCase.findAll(any(PageRequest.class)))
-                .thenReturn(new PageResponseDTO<>(List.of(userResponse()), 0, 20, 1, 1, true, true));
+        when(userUseCase.findAll(any(PageRequest.class))).thenReturn(paginatedUsers());
 
-        mockMvc.perform(get("/api/users").with(httpBasic("operador", "operador123")))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/users")).andExpect(status().isOk());
         mockMvc.perform(post("/api/users")
-                        .with(httpBasic("operador", "operador123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
+    @WithMockUser(roles = "OPERADOR")
     @DisplayName("OPERADOR nao deve conseguir escrever em nenhum outro recurso")
     void operadorShouldNotWriteOnOtherResources() throws Exception {
         mockMvc.perform(post("/api/addresses")
-                        .with(httpBasic("operador", "operador123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     @DisplayName("ADMIN deve conseguir escrever nos demais recursos")
     void adminShouldWriteOnOtherResources() throws Exception {
         when(addressUseCase.create(any(AddressRequestDTO.class))).thenReturn(addressResponse());
 
         mockMvc.perform(post("/api/addresses")
-                        .with(httpBasic("admin", "admin123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isCreated());
     }
 
     @Test
-    @DisplayName("credenciais invalidas ou ausentes devem ser rejeitadas")
-    void invalidOrMissingCredentialsShouldBeUnauthorized() throws Exception {
-        mockMvc.perform(get("/api/users").with(httpBasic("admin", "senha-errada")))
+    @DisplayName("credenciais ausentes devem ser rejeitadas")
+    void missingCredentialsShouldBeUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/users")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/users").header("Authorization", "Basic credenciais-invalidas"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/users"))
-                .andExpect(status().isUnauthorized());
+    }
+
+    private PageResponseDTO<UserResponseDTO> paginatedUsers() {
+        return new PageResponseDTO<>(List.of(userResponse()), 0, 20, 1, 1, true, true);
     }
 
     private UserResponseDTO userResponse() {

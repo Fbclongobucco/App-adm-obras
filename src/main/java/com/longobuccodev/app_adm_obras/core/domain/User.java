@@ -16,11 +16,13 @@ public class User {
 
     private static final int MIN_NAME_LENGTH = 3;
     private static final int MAX_NAME_LENGTH = 100;
+    private static final int MIN_PASSWORD_LENGTH = 6;
 
     private UUID id;
     private String name;
     private String email;
     private Boolean isActive;
+    private String passwordHash;
     private final Set<Role> roles = EnumSet.noneOf(Role.class);
 
     public User(UUID id, String name, String email, Boolean isActive) {
@@ -28,6 +30,11 @@ public class User {
         setName(name);
         setEmail(email);
         setActive(isActive);
+    }
+
+    public User(UUID id, String name, String email, Boolean isActive, String passwordHash) {
+        this(id, name, email, isActive);
+        setPasswordHash(passwordHash);
     }
 
     public UUID getId() {
@@ -64,6 +71,14 @@ public class User {
 
     public void setActive(Boolean active) {
         this.isActive = active != null && active;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = validatePasswordHash(passwordHash);
     }
 
     public Set<Role> getRoles() {
@@ -110,6 +125,16 @@ public class User {
             throw InvalidUserException.longName(normalized);
         }
         return normalized;
+    }
+
+    private static String validatePasswordHash(String passwordHash) {
+        if (passwordHash == null || passwordHash.isBlank()) {
+            throw InvalidUserException.missingPassword();
+        }
+        if (passwordHash.length() < MIN_PASSWORD_LENGTH) {
+            throw InvalidUserException.shortPassword(passwordHash.length());
+        }
+        return passwordHash;
     }
 
     private static String validateEmail(String email) {

@@ -1,9 +1,24 @@
+# Postgres para desenvolvimento com o perfil "prod".
+# As credenciais batem com os defaults de application-prod.properties.
+# Suba com:  docker compose up -d
+# Depois:     ./mvnw spring-boot:run -Dspring-boot.run.profiles=prod
 services:
   postgres:
-    image: 'postgres:latest'
+    image: 'postgres:17-alpine'
+    container_name: app-adm-obras-postgres
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      - 'POSTGRES_DB=app_adm_obras'
+      - 'POSTGRES_PASSWORD=${DB_PASSWORD:-secret}'
+      - 'POSTGRES_USER=${DB_USERNAME:-postgres}'
     ports:
-      - '5432'
+      - '5432:5432'
+    volumes:
+      - app-adm-obras-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-postgres} -d app_adm_obras']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  app-adm-obras-pgdata:

@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(UserRepositoryAdapter.class)
 class UserRepositoryAdapterTest {
 
+    private static final String HASH = "$2a$10$abcdefghijklmnopqrstuv";
+
     @Autowired
     private UserRepositoryAdapter adapter;
 
@@ -28,7 +30,7 @@ class UserRepositoryAdapterTest {
     @Test
     @DisplayName("save deve persistir o usuario com as roles na tabela user_role")
     void saveShouldPersistUserWithRoles() {
-        User user = new User(null, "Maria Souza", "maria@email.com", true);
+        User user = new User(null, "Maria Souza", "maria@email.com", true, HASH);
         user.addRole(Role.ADMIN);
         user.addRole(Role.OPERADOR);
 
@@ -42,12 +44,13 @@ class UserRepositoryAdapterTest {
         assertThat(reloaded.getEmail()).isEqualTo("maria@email.com");
         assertThat(reloaded.isActive()).isTrue();
         assertThat(reloaded.getRoles()).containsExactlyInAnyOrder(Role.ADMIN, Role.OPERADOR);
+        assertThat(reloaded.getPasswordHash()).isEqualTo(HASH);
     }
 
     @Test
     @DisplayName("findByEmail deve ignorar as diferencas de caixa nos dois sentidos")
     void findByEmailShouldIgnoreCase() {
-        adapter.save(new User(null, "Joao da Silva", "joao@email.com", true));
+        adapter.save(new User(null, "Joao da Silva", "joao@email.com", true, HASH));
 
         assertThat(adapter.findByEmail("joao@email.com")).isNotNull();
         assertThat(adapter.findByEmail("JOAO@EMAIL.COM")).isNotNull();
@@ -57,8 +60,8 @@ class UserRepositoryAdapterTest {
     @Test
     @DisplayName("findAll deve retornar todos os usuarios persistidos")
     void findAllShouldReturnEveryUser() {
-        adapter.save(new User(null, "Ana Lima", "ana@email.com", true));
-        adapter.save(new User(null, "Bruno Alves", "bruno@email.com", false));
+        adapter.save(new User(null, "Ana Lima", "ana@email.com", true, HASH));
+        adapter.save(new User(null, "Bruno Alves", "bruno@email.com", false, HASH));
 
         assertThat(adapter.findAll()).hasSize(2);
     }
@@ -66,11 +69,11 @@ class UserRepositoryAdapterTest {
     @Test
     @DisplayName("update deve sobrescrever os campos e substituir as roles")
     void updateShouldOverwriteFieldsAndRoles() {
-        User user = new User(null, "Ana Lima", "ana@email.com", true);
+        User user = new User(null, "Ana Lima", "ana@email.com", true, HASH);
         user.addRole(Role.ADMIN);
         User saved = adapter.save(user);
 
-        User changed = new User(saved.getId(), "Ana Maria Lima", "ana.maria@email.com", false);
+        User changed = new User(saved.getId(), "Ana Maria Lima", "ana.maria@email.com", false, HASH);
         changed.addRole(Role.OPERADOR);
         adapter.update(changed);
 
@@ -79,12 +82,13 @@ class UserRepositoryAdapterTest {
         assertThat(reloaded.getEmail()).isEqualTo("ana.maria@email.com");
         assertThat(reloaded.isActive()).isFalse();
         assertThat(reloaded.getRoles()).containsExactly(Role.OPERADOR);
+        assertThat(reloaded.getPasswordHash()).isEqualTo(HASH);
     }
 
     @Test
     @DisplayName("deleteById deve remover o usuario")
     void deleteByIdShouldRemoveUser() {
-        User saved = adapter.save(new User(null, "Carla Dias", "carla@email.com", true));
+        User saved = adapter.save(new User(null, "Carla Dias", "carla@email.com", true, HASH));
 
         adapter.deleteById(saved.getId());
 
@@ -100,7 +104,7 @@ class UserRepositoryAdapterTest {
     @Test
     @DisplayName("update nao deve lancar excecao quando o usuario nao existir")
     void updateShouldIgnoreMissingUser() {
-        User orphan = new User(UUID.randomUUID(), "Fantasma", "fantasma@email.com", true);
+        User orphan = new User(UUID.randomUUID(), "Fantasma", "fantasma@email.com", true, HASH);
         orphan.addRole(Role.OPERADOR);
 
         adapter.update(orphan);
@@ -168,7 +172,7 @@ class UserRepositoryAdapterTest {
     @Test
     @DisplayName("findAll paginado deve manter as roles dos usuarios mapeados")
     void paginatedFindAllShouldMapRoles() {
-        User user = new User(null, "Diego Reis", "diego@email.com", true);
+        User user = new User(null, "Diego Reis", "diego@email.com", true, HASH);
         user.addRole(Role.OPERADOR);
         adapter.save(user);
 
@@ -180,7 +184,7 @@ class UserRepositoryAdapterTest {
 
     private void saveUsers(int quantity) {
         for (int i = 1; i <= quantity; i++) {
-            adapter.save(new User(null, "Usuario " + i, "usuario" + i + "@email.com", true));
+            adapter.save(new User(null, "Usuario " + i, "usuario" + i + "@email.com", true, HASH));
         }
     }
 }

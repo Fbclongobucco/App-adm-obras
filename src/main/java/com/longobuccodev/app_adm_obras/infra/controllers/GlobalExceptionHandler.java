@@ -2,6 +2,7 @@ package com.longobuccodev.app_adm_obras.infra.controllers;
 
 import com.longobuccodev.app_adm_obras.application.dto.ErrorResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
+import com.longobuccodev.app_adm_obras.core.exception.AuthenticationFailedException;
 import com.longobuccodev.app_adm_obras.core.exception.CoreDomainException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,12 @@ public class GlobalExceptionHandler {
                                                               HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, "request.parameter.invalid",
                 "Invalid value for parameter '" + ex.getName() + "': " + ex.getValue(), request);
+    }
+
+    @ExceptionHandler(AuthenticationFailedException.class)
+    public ResponseEntity<ErrorResponseDTO> handleAuthentication(AuthenticationFailedException ex,
+                                                                 HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getErrorCode(), ex.getMessage(), request);
     }
 
     private ResponseEntity<ErrorResponseDTO> build(HttpStatus status, String errorCode, String message,
