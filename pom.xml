@@ -94,4 +94,44 @@
 		</plugins>
 	</build>
 
+  <profiles>
+    <profile>
+      <id>diagrams</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.4.1</version>
+            <executions>
+              <execution>
+                <id>generate-erd</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>java</goal>
+                </goals>
+                <configuration>
+                  <mainClass>net.sourceforge.plantuml.Run</mainClass>
+                  <arguments>
+                    <argument>-tsvg</argument>
+                    <argument>-o</argument>
+                    <argument>.</argument>
+                    <argument>app-adm-obras-erd.puml</argument>
+                  </arguments>
+                  <classpathScope>runtime</classpathScope>
+                </configuration>
+              </execution>
+            </executions>
+            <dependencies>
+              <dependency>
+                <groupId>net.sourceforge.plantuml</groupId>
+                <artifactId>plantuml</artifactId>
+                <version>1.2024.8</version>
+              </dependency>
+            </dependencies>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

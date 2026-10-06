@@ -1,0 +1,125 @@
+@startuml
+!define Table(name,desc) class name as "desc" << (T,#FFAAAA) >>
+!define primary_key(x) <u>x</u>
+!define foreign_key(x) <color:red>x</color>
+
+hide methods
+hide stereotypes
+
+Table(address, "address") {
+  primary_key(id) UUID
+  street VARCHAR
+  number VARCHAR
+  city VARCHAR
+  state VARCHAR(2)
+  country VARCHAR
+  neighborhood VARCHAR
+  zip_code VARCHAR(8)
+}
+
+Table(cost_center, "cost_center") {
+  primary_key(id) UUID
+  name VARCHAR
+  cnpj VARCHAR(14)
+}
+
+Table(client, "client") {
+  primary_key(id) UUID
+  name VARCHAR
+  email VARCHAR UNIQUE
+  phone VARCHAR
+  foreign_key(address_id) UUID <<FK>>
+}
+
+Table(employee, "employee") {
+  primary_key(id) UUID
+  name VARCHAR
+  email VARCHAR UNIQUE
+  cpf VARCHAR(11) UNIQUE
+  phone VARCHAR(11)
+  birth_date DATE
+  role VARCHAR
+  foreign_key(address_id) UUID <<FK, nullable>>
+  foreign_key(cost_center_id) UUID <<FK>>
+}
+
+Table(project, "project") {
+  primary_key(id) UUID
+  os VARCHAR UNIQUE
+  description VARCHAR(500)
+  start_date DATE
+  end_date DATE
+  total_price DECIMAL(19,2)
+  is_completed BOOLEAN
+  foreign_key(cost_center_id) UUID <<FK>>
+  foreign_key(client_id) UUID <<FK>>
+}
+
+Table(accommodation, "accommodation") {
+  primary_key(id) UUID
+  host_name VARCHAR
+  host_phone VARCHAR(11)
+  capacity INTEGER
+  days INTEGER
+  is_contract BOOLEAN
+  total_price DECIMAL(19,2)
+  foreign_key(address_id) UUID <<FK>>
+  foreign_key(project_id) UUID <<FK>>
+}
+
+Table(meal, "meal") {
+  primary_key(id) UUID
+  restaurant_name VARCHAR
+  price DECIMAL(19,2)
+  is_billed BOOLEAN
+  meal_type VARCHAR
+  quantity INTEGER
+  date DATE
+  total_price DECIMAL(19,2)
+  foreign_key(address_id) UUID <<FK, nullable>>
+  foreign_key(project_id) UUID <<FK, nullable>>
+}
+
+Table(project_employee, "project_employee") {
+  foreign_key(project_id) UUID <<FK>>
+  foreign_key(employee_id) UUID <<FK>>
+}
+
+Table(accommodation_employee, "accommodation_employee") {
+  foreign_key(accommodation_id) UUID <<FK>>
+  foreign_key(employee_id) UUID <<FK>>
+}
+
+Table(app_user, "app_user") {
+  primary_key(id) UUID
+  name VARCHAR
+  email VARCHAR UNIQUE
+  is_active BOOLEAN
+  password_hash VARCHAR(100)
+}
+
+Table(user_role, "user_role") {
+  foreign_key(user_id) UUID <<FK>>
+  role VARCHAR
+}
+
+address "1" -- "0..*" client : has
+address "1" -- "0..*" employee : has
+address "1" -- "0..*" accommodation : has
+address "1" -- "0..*" meal : has
+
+cost_center "1" -- "0..*" employee : belongs_to
+cost_center "1" -- "0..*" project : belongs_to
+
+client "1" -- "0..*" project : has
+
+project "1" -- "0..*" accommodation : contains
+project "1" -- "0..*" meal : has
+project "0..*" -- "0..*" employee : project_employee
+(project, employee) .. project_employee
+accommodation "0..*" -- "0..*" employee : accommodation_employee
+(accommodation, employee) .. accommodation_employee
+
+app_user "1" -- "0..*" user_role : has
+
+@enduml

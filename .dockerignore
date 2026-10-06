@@ -1,0 +1,15 @@
+target
+.git
+.gitignore
+.vscode
+.idea
+*.iml
+.mvn/wrapper/maven-wrapper.jar
+.mvn
+mvnw.cmd
+HELP.md
+README.md
+.env
+*.env
+*.log
+tmp
