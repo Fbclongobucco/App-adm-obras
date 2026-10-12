@@ -46,4 +46,6 @@ public interface MealJpaRepository extends JpaRepository<MealEntity, UUID> {
     List<MealEntity> findByDateBetween(LocalDate startDate, LocalDate endDate);
 
     List<MealEntity> findByMealType(MealType mealType);
+
+    boolean existsByRestaurantId(UUID restaurantId);
 }

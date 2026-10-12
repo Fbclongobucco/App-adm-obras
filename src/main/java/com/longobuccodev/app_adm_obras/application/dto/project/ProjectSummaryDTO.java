@@ -2,6 +2,7 @@ package com.longobuccodev.app_adm_obras.application.dto.project;
 
 import com.longobuccodev.app_adm_obras.application.dto.client.ClientSummaryDTO;
 import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterResponseDTO;
+import java.time.Instant;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -15,6 +16,8 @@ public record ProjectSummaryDTO(
         LocalDate endDate,
         ClientSummaryDTO client,
         BigDecimal totalPrice,
-        Boolean isCompleted
+        Boolean isCompleted,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

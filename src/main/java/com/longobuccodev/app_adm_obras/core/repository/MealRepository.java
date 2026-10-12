@@ -15,6 +15,8 @@ public interface MealRepository {
     List<Meal> findByCostCenter(CostCenter costCenter);
     List<Meal> findByClient(Client client);
     List<Meal> findByProject(Project project);
+
+    boolean existsByRestaurantId(UUID restaurantId);
     List<Meal> findByDate(LocalDate date);
     List<Meal> findByDateBetween(LocalDate startDate, LocalDate endDate);
     List<Meal> findByMealType(Meal.MealType mealType);

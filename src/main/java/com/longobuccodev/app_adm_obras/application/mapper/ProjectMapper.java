@@ -45,7 +45,9 @@ public final class ProjectMapper {
                 project.getEndDate(),
                 ClientMapper.toSummary(project.getClient()),
                 project.getTotalPrice(),
-                project.getIsCompleted()
+                project.getIsCompleted(),
+                project.getCreatedAt(),
+                project.getUpdatedAt()
         );
     }
 
@@ -66,8 +68,11 @@ public final class ProjectMapper {
                         .collect(Collectors.toCollection(LinkedHashSet::new)),
                 MealMapper.toSummary(project.getLunch()),
                 MealMapper.toSummary(project.getDinner()),
+                project.getRestaurants().stream().map(RestaurantMapper::toSummary).toList(),
                 project.getTotalPrice(),
-                project.getIsCompleted()
+                project.getIsCompleted(),
+                project.getCreatedAt(),
+                project.getUpdatedAt()
         );
     }
 

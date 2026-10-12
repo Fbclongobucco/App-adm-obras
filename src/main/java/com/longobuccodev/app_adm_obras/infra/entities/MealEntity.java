@@ -10,6 +10,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,13 +19,14 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "meal")
-public class MealEntity {
+public class MealEntity extends AuditedEntity {
 
     @Id
     private UUID id;
 
-    @Column(name = "restaurant_name", nullable = false)
-    private String restaurantName;
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "restaurant_id", nullable = false)
+    private RestaurantEntity restaurant;
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal price;
@@ -31,15 +34,14 @@ public class MealEntity {
     @Column(name = "is_billed", nullable = false)
     private Boolean isBilled;
 
+    // Copia da obra do restaurante, para a unicidade (project_id, meal_type) valer no banco
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "address_id")
-    private AddressEntity address;
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "project_id")
+    @JoinColumn(name = "project_id", nullable = false)
     private ProjectEntity project;
 
     @Enumerated(EnumType.STRING)
+    // VARCHAR em todos os bancos, como nas migracoes; sem isso o H2Dialect usa ENUM nativo
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "meal_type", nullable = false)
     private MealType mealType;
 
@@ -67,12 +69,12 @@ public class MealEntity {
         this.id = id;
     }
 
-    public String getRestaurantName() {
-        return restaurantName;
+    public RestaurantEntity getRestaurant() {
+        return restaurant;
     }
 
-    public void setRestaurantName(String restaurantName) {
-        this.restaurantName = restaurantName;
+    public void setRestaurant(RestaurantEntity restaurant) {
+        this.restaurant = restaurant;
     }
 
     public BigDecimal getPrice() {
@@ -91,13 +93,6 @@ public class MealEntity {
         this.isBilled = isBilled;
     }
 
-    public AddressEntity getAddress() {
-        return address;
-    }
-
-    public void setAddress(AddressEntity address) {
-        this.address = address;
-    }
 
     public ProjectEntity getProject() {
         return project;

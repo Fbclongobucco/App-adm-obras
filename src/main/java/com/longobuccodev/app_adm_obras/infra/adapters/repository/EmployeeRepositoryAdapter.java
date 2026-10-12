@@ -5,8 +5,10 @@ import com.longobuccodev.app_adm_obras.core.repository.EmployeeRepository;
 import com.longobuccodev.app_adm_obras.core.repository.Page;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.infra.adapters.mapper.EmployeeEntityMapper;
+import com.longobuccodev.app_adm_obras.infra.entities.CostCenterEntity;
 import com.longobuccodev.app_adm_obras.infra.entities.EmployeeEntity;
 import com.longobuccodev.app_adm_obras.infra.entities.ProjectEntity;
+import com.longobuccodev.app_adm_obras.infra.repositories.CostCenterJpaRepository;
 import com.longobuccodev.app_adm_obras.infra.repositories.EmployeeJpaRepository;
 import com.longobuccodev.app_adm_obras.infra.repositories.ProjectJpaRepository;
 import org.springframework.stereotype.Repository;
@@ -20,17 +22,20 @@ public class EmployeeRepositoryAdapter implements EmployeeRepository {
 
     private final EmployeeJpaRepository jpaRepository;
     private final ProjectJpaRepository projectJpaRepository;
+    private final CostCenterJpaRepository costCenterJpaRepository;
 
     public EmployeeRepositoryAdapter(EmployeeJpaRepository jpaRepository,
-                                     ProjectJpaRepository projectJpaRepository) {
+                                     ProjectJpaRepository projectJpaRepository,
+                                     CostCenterJpaRepository costCenterJpaRepository) {
         this.jpaRepository = jpaRepository;
         this.projectJpaRepository = projectJpaRepository;
+        this.costCenterJpaRepository = costCenterJpaRepository;
     }
 
     @Override
     @Transactional
     public Employee save(Employee employee) {
-        return toDomain(jpaRepository.save(EmployeeEntityMapper.toEntity(employee)));
+        return toDomain(jpaRepository.save(EmployeeEntityMapper.toEntity(employee, costCenterOf(employee))));
     }
 
     @Override
@@ -104,7 +109,13 @@ public class EmployeeRepositoryAdapter implements EmployeeRepository {
     @Transactional
     public void update(Employee employee) {
         jpaRepository.findById(employee.getId())
-                .ifPresent(entity -> EmployeeEntityMapper.apply(employee, entity));
+                .ifPresent(entity -> EmployeeEntityMapper.apply(employee, entity, costCenterOf(employee)));
+    }
+
+    private CostCenterEntity costCenterOf(Employee employee) {
+        return employee.getCostCenter() == null
+                ? null
+                : costCenterJpaRepository.getReferenceById(employee.getCostCenter().getId());
     }
 
     private Employee toDomain(EmployeeEntity entity) {

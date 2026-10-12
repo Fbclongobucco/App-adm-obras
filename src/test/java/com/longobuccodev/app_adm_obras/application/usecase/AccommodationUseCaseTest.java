@@ -13,6 +13,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +31,9 @@ import static org.mockito.Mockito.when;
 
 class AccommodationUseCaseTest {
 
+    static final Instant CLOCK_NOW = Instant.parse("2026-01-15T10:00:00Z");
+    static final Clock CLOCK = Clock.fixed(CLOCK_NOW, ZoneOffset.UTC);
+
     private AccommodationRepository accommodationRepository;
     private ProjectRepository projectRepository;
     private EmployeeRepository employeeRepository;
@@ -38,7 +44,7 @@ class AccommodationUseCaseTest {
         accommodationRepository = mock(AccommodationRepository.class);
         projectRepository = mock(ProjectRepository.class);
         employeeRepository = mock(EmployeeRepository.class);
-        useCase = new AccommodationUseCase(accommodationRepository, projectRepository, employeeRepository);
+        useCase = new AccommodationUseCase(accommodationRepository, projectRepository, employeeRepository, CLOCK);
     }
 
     private static AccommodationRequestDTO newRequest(UUID projectId, Set<UUID> employeeIds) {

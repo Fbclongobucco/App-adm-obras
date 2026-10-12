@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-public class Project {
+public class Project extends Audited {
 
     private static final Pattern OS_PATTERN = Pattern.compile("^[A-Za-z0-9._/-]+$");
 
@@ -29,6 +29,7 @@ public class Project {
     private LocalDate endDate;
     private Client client;
     private final Set<Accommodation> accommodations = new LinkedHashSet<>();
+    private final Set<Restaurant> restaurants = new LinkedHashSet<>();
     private final Set<Employee> employees = new LinkedHashSet<>();
     private Meal lunch;
     private Meal dinner;
@@ -133,6 +134,17 @@ public class Project {
             accommodation.setProject(null);
         }
         refreshTotalPrice();
+    }
+
+    /** Restaurantes que atendem a obra. Leitura apenas: o vinculo e definido pelo restaurante. */
+    public Set<Restaurant> getRestaurants() {
+        return Collections.unmodifiableSet(restaurants);
+    }
+
+    public void addRestaurant(Restaurant restaurant) {
+        if (restaurant != null) {
+            restaurants.add(restaurant);
+        }
     }
 
     public Set<Employee> getEmployees() {

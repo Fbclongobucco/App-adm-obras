@@ -12,6 +12,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+
 @Component
 @ConditionalOnProperty(prefix = "app.bootstrap", name = "enabled", havingValue = "true")
 public class DataBootstrap implements ApplicationRunner {
@@ -21,12 +23,14 @@ public class DataBootstrap implements ApplicationRunner {
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
     private final BootstrapProperties properties;
+    private final Clock clock;
 
     public DataBootstrap(UserRepository userRepository, PasswordHasher passwordHasher,
-                         BootstrapProperties properties) {
+                         BootstrapProperties properties, Clock clock) {
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.properties = properties;
+        this.clock = clock;
     }
 
     @Override
@@ -46,6 +50,7 @@ public class DataBootstrap implements ApplicationRunner {
         String name = admin.name() == null || admin.name().isBlank() ? "Administrador" : admin.name();
         User user = new User(null, name, admin.email(), true, passwordHasher.hash(admin.password()));
         user.addRole(Role.ADMIN);
+        user.markCreated(clock.instant());
         userRepository.save(user);
 
         log.info("Usuario bootstrap criado: {} com role ADMIN", admin.email());

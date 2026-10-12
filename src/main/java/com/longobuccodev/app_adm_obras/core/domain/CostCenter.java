@@ -5,7 +5,7 @@ import com.longobuccodev.app_adm_obras.core.exception.InvalidCostCenterException
 import java.util.Objects;
 import java.util.UUID;
 
-public class CostCenter {
+public class CostCenter extends Audited {
 
     private static final int CNPJ_LENGTH = 14;
     private static final int[] CNPJ_FIRST_DIGIT_WEIGHTS = {5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2};

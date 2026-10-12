@@ -34,7 +34,7 @@ class UserRepositoryAdapterTest {
         user.addRole(Role.ADMIN);
         user.addRole(Role.OPERADOR);
 
-        User saved = adapter.save(user);
+        User saved = adapter.save(stamped(user));
 
         assertThat(saved.getId()).isNotNull();
         assertThat(jpaRepository.findById(saved.getId())).isPresent();
@@ -50,7 +50,7 @@ class UserRepositoryAdapterTest {
     @Test
     @DisplayName("findByEmail deve ignorar as diferencas de caixa nos dois sentidos")
     void findByEmailShouldIgnoreCase() {
-        adapter.save(new User(null, "Joao da Silva", "joao@email.com", true, HASH));
+        adapter.save(stamped(new User(null, "Joao da Silva", "joao@email.com", true, HASH)));
 
         assertThat(adapter.findByEmail("joao@email.com")).isNotNull();
         assertThat(adapter.findByEmail("JOAO@EMAIL.COM")).isNotNull();
@@ -60,8 +60,8 @@ class UserRepositoryAdapterTest {
     @Test
     @DisplayName("findAll deve retornar todos os usuarios persistidos")
     void findAllShouldReturnEveryUser() {
-        adapter.save(new User(null, "Ana Lima", "ana@email.com", true, HASH));
-        adapter.save(new User(null, "Bruno Alves", "bruno@email.com", false, HASH));
+        adapter.save(stamped(new User(null, "Ana Lima", "ana@email.com", true, HASH)));
+        adapter.save(stamped(new User(null, "Bruno Alves", "bruno@email.com", false, HASH)));
 
         assertThat(adapter.findAll()).hasSize(2);
     }
@@ -71,7 +71,7 @@ class UserRepositoryAdapterTest {
     void updateShouldOverwriteFieldsAndRoles() {
         User user = new User(null, "Ana Lima", "ana@email.com", true, HASH);
         user.addRole(Role.ADMIN);
-        User saved = adapter.save(user);
+        User saved = adapter.save(stamped(user));
 
         User changed = new User(saved.getId(), "Ana Maria Lima", "ana.maria@email.com", false, HASH);
         changed.addRole(Role.OPERADOR);
@@ -88,7 +88,7 @@ class UserRepositoryAdapterTest {
     @Test
     @DisplayName("deleteById deve remover o usuario")
     void deleteByIdShouldRemoveUser() {
-        User saved = adapter.save(new User(null, "Carla Dias", "carla@email.com", true, HASH));
+        User saved = adapter.save(stamped(new User(null, "Carla Dias", "carla@email.com", true, HASH)));
 
         adapter.deleteById(saved.getId());
 
@@ -174,7 +174,7 @@ class UserRepositoryAdapterTest {
     void paginatedFindAllShouldMapRoles() {
         User user = new User(null, "Diego Reis", "diego@email.com", true, HASH);
         user.addRole(Role.OPERADOR);
-        adapter.save(user);
+        adapter.save(stamped(user));
 
         Page<User> page = adapter.findAll(PageRequest.ofSize(10));
 
@@ -184,7 +184,12 @@ class UserRepositoryAdapterTest {
 
     private void saveUsers(int quantity) {
         for (int i = 1; i <= quantity; i++) {
-            adapter.save(new User(null, "Usuario " + i, "usuario" + i + "@email.com", true, HASH));
+            adapter.save(stamped(new User(null, "Usuario " + i, "usuario" + i + "@email.com", true, HASH)));
         }
+    }
+
+    private static User stamped(User user) {
+        user.markCreated(java.time.Instant.parse("2026-01-15T10:00:00Z"));
+        return user;
     }
 }

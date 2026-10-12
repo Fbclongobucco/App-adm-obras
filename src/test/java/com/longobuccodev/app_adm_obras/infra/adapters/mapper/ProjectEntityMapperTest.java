@@ -7,6 +7,7 @@ import com.longobuccodev.app_adm_obras.infra.entities.ClientEntity;
 import com.longobuccodev.app_adm_obras.infra.entities.CostCenterEntity;
 import com.longobuccodev.app_adm_obras.infra.entities.MealEntity;
 import com.longobuccodev.app_adm_obras.infra.entities.ProjectEntity;
+import com.longobuccodev.app_adm_obras.infra.entities.RestaurantEntity;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -46,11 +47,11 @@ class ProjectEntityMapperTest {
     void toDomainShouldLinkMealsAndCalculateTotal() {
         ProjectEntity entity = projectEntity();
 
-        Project project = ProjectEntityMapper.toDomain(entity, lunch(), dinner());
+        Project project = ProjectEntityMapper.toDomain(entity, lunch(entity), dinner(entity));
 
-        assertThat(project.getLunch().getRestaurantName()).isEqualTo("Restaurante do Ze");
+        assertThat(project.getLunch().getRestaurant().getName()).isEqualTo("Restaurante do Ze");
         assertThat(project.getLunch().getProject()).isSameAs(project);
-        assertThat(project.getDinner().getRestaurantName()).isEqualTo("Churrascaria do Boi");
+        assertThat(project.getDinner().getRestaurant().getName()).isEqualTo("Churrascaria do Boi");
         assertThat(project.getDinner().getProject()).isSameAs(project);
         assertThat(project.getTotalPrice()).isEqualByComparingTo("700.00");
     }
@@ -146,18 +147,24 @@ class ProjectEntityMapperTest {
         return address;
     }
 
-    private MealEntity lunch() {
-        return meal(MealType.LUNCH, "Restaurante do Ze", "25.00", 10);
+    private MealEntity lunch(ProjectEntity project) {
+        return meal(project, MealType.LUNCH, "Restaurante do Ze", "25.00", 10);
     }
 
-    private MealEntity dinner() {
-        return meal(MealType.DINNER, "Churrascaria do Boi", "45.00", 10);
+    private MealEntity dinner(ProjectEntity project) {
+        return meal(project, MealType.DINNER, "Churrascaria do Boi", "45.00", 10);
     }
 
-    private MealEntity meal(MealType mealType, String restaurantName, String price, int quantity) {
+    private MealEntity meal(ProjectEntity project, MealType mealType, String restaurantName, String price,
+                            int quantity) {
+        RestaurantEntity restaurant = RestaurantEntity.create();
+        restaurant.setId(UUID.randomUUID());
+        restaurant.setName(restaurantName);
+        restaurant.setProject(project);
         MealEntity meal = MealEntity.create();
         meal.setId(UUID.randomUUID());
-        meal.setRestaurantName(restaurantName);
+        meal.setRestaurant(restaurant);
+        meal.setProject(project);
         meal.setPrice(new BigDecimal(price));
         meal.setQuantity(quantity);
         meal.setTotalPrice(new BigDecimal(price).multiply(BigDecimal.valueOf(quantity)));

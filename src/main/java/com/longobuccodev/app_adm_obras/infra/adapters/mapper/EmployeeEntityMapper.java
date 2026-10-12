@@ -1,6 +1,7 @@
 package com.longobuccodev.app_adm_obras.infra.adapters.mapper;
 
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
+import com.longobuccodev.app_adm_obras.infra.entities.CostCenterEntity;
 import com.longobuccodev.app_adm_obras.infra.entities.EmployeeEntity;
 import com.longobuccodev.app_adm_obras.infra.entities.ProjectEntity;
 
@@ -26,20 +27,24 @@ public final class EmployeeEntityMapper {
         if (projects != null) {
             projects.forEach(project -> employee.addProject(ProjectEntityMapper.toDomainShallow(project)));
         }
-        return employee;
+        return AuditMapping.restore(employee, entity);
     }
 
-    public static EmployeeEntity toEntity(Employee domain) {
+    /**
+     * @param costCenter referencia gerenciada ao centro de custo do dominio (ou null); o colaborador
+     *                   so aponta para ela, sem copiar dados para nenhum centro de custo
+     */
+    public static EmployeeEntity toEntity(Employee domain, CostCenterEntity costCenter) {
         if (domain == null) {
             return null;
         }
         EmployeeEntity entity = EmployeeEntity.create();
         entity.setId(domain.getId());
-        apply(domain, entity);
+        apply(domain, entity, costCenter);
         return entity;
     }
 
-    public static void apply(Employee domain, EmployeeEntity entity) {
+    public static void apply(Employee domain, EmployeeEntity entity, CostCenterEntity costCenter) {
         if (domain == null || entity == null) {
             return;
         }
@@ -49,6 +54,7 @@ public final class EmployeeEntityMapper {
         entity.setPhone(domain.getPhone());
         entity.setBirthDate(domain.getBirthDate());
         entity.setRole(domain.getRole());
+        AuditMapping.copy(domain, entity);
         if (domain.getAddress() == null) {
             entity.setAddress(null);
         } else if (entity.getAddress() == null) {
@@ -56,12 +62,6 @@ public final class EmployeeEntityMapper {
         } else {
             AddressEntityMapper.apply(domain.getAddress(), entity.getAddress());
         }
-        if (domain.getCostCenter() == null) {
-            entity.setCostCenter(null);
-        } else if (entity.getCostCenter() == null) {
-            entity.setCostCenter(CostCenterEntityMapper.toEntity(domain.getCostCenter()));
-        } else {
-            CostCenterEntityMapper.apply(domain.getCostCenter(), entity.getCostCenter());
-        }
+        entity.setCostCenter(costCenter);
     }
 }

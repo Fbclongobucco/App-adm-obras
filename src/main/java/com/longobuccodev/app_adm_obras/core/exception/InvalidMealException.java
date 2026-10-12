@@ -9,18 +9,8 @@ public class InvalidMealException extends CoreDomainException {
         super(errorCode, message);
     }
 
-    public static InvalidMealException blankRestaurantName() {
-        return new InvalidMealException(
-                "meal.invalid.restaurant_name.blank",
-                "Meal restaurant name must not be blank"
-        );
-    }
-
-    public static InvalidMealException invalidRestaurantName(String restaurantName) {
-        return new InvalidMealException(
-                "meal.invalid.restaurant_name.length",
-                "Meal restaurant name must be between 2 and 100 characters: " + restaurantName
-        );
+    public static InvalidMealException missingRestaurant() {
+        return new InvalidMealException("meal.invalid.restaurant", "Meal must reference a restaurant");
     }
 
     public static InvalidMealException invalidPrice(BigDecimal price) {

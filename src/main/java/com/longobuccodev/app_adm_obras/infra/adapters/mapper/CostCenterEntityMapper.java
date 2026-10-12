@@ -12,7 +12,7 @@ public final class CostCenterEntityMapper {
         if (entity == null) {
             return null;
         }
-        return new CostCenter(entity.getId(), entity.getName(), entity.getCnpj());
+        return AuditMapping.restore(new CostCenter(entity.getId(), entity.getName(), entity.getCnpj()), entity);
     }
 
     public static CostCenterEntity toEntity(CostCenter domain) {
@@ -23,6 +23,7 @@ public final class CostCenterEntityMapper {
         entity.setId(domain.getId());
         entity.setName(domain.getName());
         entity.setCnpj(domain.getCnpj());
+        AuditMapping.copy(domain, entity);
         return entity;
     }
 
@@ -32,5 +33,6 @@ public final class CostCenterEntityMapper {
         }
         entity.setName(domain.getName());
         entity.setCnpj(domain.getCnpj());
+        AuditMapping.copy(domain, entity);
     }
 }

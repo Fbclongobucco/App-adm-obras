@@ -13,6 +13,7 @@ import com.longobuccodev.app_adm_obras.infra.controllers.AddressController;
 import com.longobuccodev.app_adm_obras.infra.controllers.UserController;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.longobuccodev.app_adm_obras.infra.config.ClockConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -21,6 +22,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -32,7 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = {UserController.class, AddressController.class})
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, ClockConfig.class})
 class SecurityConfigTest {
 
 
@@ -107,7 +109,8 @@ class SecurityConfigTest {
     }
 
     private UserResponseDTO userResponse() {
-        return new UserResponseDTO(UUID.randomUUID(), "Maria Souza", "maria@email.com", true, Set.of(Role.ADMIN));
+        return new UserResponseDTO(UUID.randomUUID(), "Maria Souza", "maria@email.com", true, Set.of(Role.ADMIN),
+                Instant.EPOCH, Instant.EPOCH);
     }
 
     private AddressResponseDTO addressResponse() {

@@ -32,6 +32,8 @@ public final class UserMapper {
             return null;
         }
         return new UserResponseDTO(user.getId(), user.getName(), user.getEmail(), user.getIsActive(),
-                user.getRoles());
+                user.getRoles(),
+                user.getCreatedAt(),
+                user.getUpdatedAt());
     }
 }

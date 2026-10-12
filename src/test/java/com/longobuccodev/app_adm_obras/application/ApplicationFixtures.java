@@ -15,6 +15,7 @@ import com.longobuccodev.app_adm_obras.core.domain.Employee.Role;
 import com.longobuccodev.app_adm_obras.core.domain.Meal;
 import com.longobuccodev.app_adm_obras.core.domain.Meal.MealType;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
+import com.longobuccodev.app_adm_obras.core.domain.Restaurant;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -43,9 +44,9 @@ public final class ApplicationFixtures {
                 LocalDate.of(1990, 5, 20), costCenterId, Role.MONTADOR);
     }
 
-    public static MealRequestDTO mealRequest(UUID projectId, MealType mealType) {
-        return new MealRequestDTO("Restaurante do Ze", new BigDecimal("25.00"), false, null, projectId, mealType,
-                10, LocalDate.of(2026, 1, 15));
+    public static MealRequestDTO mealRequest(UUID restaurantId, MealType mealType) {
+        return new MealRequestDTO(restaurantId, new BigDecimal("25.00"), false, mealType, 10,
+                LocalDate.of(2026, 1, 15));
     }
 
     public static ProjectRequestDTO projectRequest(UUID costCenterId, UUID clientId, Set<UUID> accommodationIds,
@@ -71,8 +72,16 @@ public final class ApplicationFixtures {
                 LocalDate.of(1990, 5, 20), costCenter(), Role.MONTADOR);
     }
 
+    public static Restaurant restaurant(Project project) {
+        return new Restaurant(null, "Restaurante do Ze", "1133335555", address(), project);
+    }
+
     public static Meal meal(MealType mealType) {
-        return new Meal(null, "Restaurante do Ze", new BigDecimal("25.00"), false, null, null, mealType, 10,
+        return meal(mealType, project());
+    }
+
+    public static Meal meal(MealType mealType, Project project) {
+        return new Meal(null, restaurant(project), new BigDecimal("25.00"), false, mealType, 10,
                 LocalDate.of(2026, 1, 15));
     }
 

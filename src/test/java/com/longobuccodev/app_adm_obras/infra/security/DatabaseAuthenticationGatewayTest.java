@@ -31,19 +31,19 @@ class DatabaseAuthenticationGatewayTest {
     @Test
     @DisplayName("deve autenticar com a senha correta")
     void shouldAuthenticateWithCorrectPassword() {
-        when(userRepository.findByEmail("admin@admim.com")).thenReturn(user("admin@admim.com", "admin123", true));
+        when(userRepository.findByEmail("admin@admin.com")).thenReturn(user("admin@admin.com", "admin123", true));
 
-        User authenticated = gateway.authenticate("admin@admim.com", "admin123");
+        User authenticated = gateway.authenticate("admin@admin.com", "admin123");
 
-        assertThat(authenticated.getEmail()).isEqualTo("admin@admim.com");
+        assertThat(authenticated.getEmail()).isEqualTo("admin@admin.com");
     }
 
     @Test
     @DisplayName("deve rejeitar senha incorreta")
     void shouldRejectWrongPassword() {
-        when(userRepository.findByEmail("admin@admim.com")).thenReturn(user("admin@admim.com", "admin123", true));
+        when(userRepository.findByEmail("admin@admin.com")).thenReturn(user("admin@admin.com", "admin123", true));
 
-        assertThatThrownBy(() -> gateway.authenticate("admin@admim.com", "senha-errada"))
+        assertThatThrownBy(() -> gateway.authenticate("admin@admin.com", "senha-errada"))
                 .isInstanceOf(AuthenticationFailedException.class);
     }
 
@@ -52,7 +52,7 @@ class DatabaseAuthenticationGatewayTest {
     void shouldRejectUnknownEmail() {
         when(userRepository.findByEmail(any())).thenReturn(null);
 
-        assertThatThrownBy(() -> gateway.authenticate("ninguem@admim.com", "admin123"))
+        assertThatThrownBy(() -> gateway.authenticate("ninguem@admin.com", "admin123"))
                 .isInstanceOf(AuthenticationFailedException.class)
                 .hasMessageContaining("Invalid email or password");
     }
@@ -60,16 +60,16 @@ class DatabaseAuthenticationGatewayTest {
     @Test
     @DisplayName("deve rejeitar usuario inativo mesmo com a senha correta")
     void shouldRejectInactiveUser() {
-        when(userRepository.findByEmail("inativo@admim.com")).thenReturn(user("inativo@admim.com", "admin123", false));
+        when(userRepository.findByEmail("inativo@admin.com")).thenReturn(user("inativo@admin.com", "admin123", false));
 
-        assertThatThrownBy(() -> gateway.authenticate("inativo@admim.com", "admin123"))
+        assertThatThrownBy(() -> gateway.authenticate("inativo@admin.com", "admin123"))
                 .isInstanceOf(AuthenticationFailedException.class);
     }
 
     @Test
     @DisplayName("a senha nunca deve ser exposta em claro, apenas o hash bcrypt")
     void shouldNeverExposeRawPassword() {
-        User user = user("admin@admim.com", "admin123", true);
+        User user = user("admin@admin.com", "admin123", true);
 
         assertThat(user.getPasswordHash()).isNotEqualTo("admin123").startsWith("$2");
     }
@@ -77,9 +77,9 @@ class DatabaseAuthenticationGatewayTest {
     @Test
     @DisplayName("deve localizar o usuario ignorando caixa do email")
     void shouldFindUserIgnoringCase() {
-        when(userRepository.findByEmail("ADMIN@ADMIM.COM")).thenReturn(user("admin@admim.com", "admin123", true));
+        when(userRepository.findByEmail("ADMIN@ADMIN.COM")).thenReturn(user("admin@admin.com", "admin123", true));
 
-        assertThat(gateway.authenticate("ADMIN@ADMIM.COM", "admin123")).isNotNull();
+        assertThat(gateway.authenticate("ADMIN@ADMIN.COM", "admin123")).isNotNull();
     }
 
     @Test

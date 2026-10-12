@@ -13,7 +13,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "client")
-public class ClientEntity {
+public class ClientEntity extends AuditedEntity {
 
     @Id
     private UUID id;

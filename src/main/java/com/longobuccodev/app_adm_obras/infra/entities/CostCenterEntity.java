@@ -9,7 +9,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "cost_center")
-public class CostCenterEntity {
+public class CostCenterEntity extends AuditedEntity {
 
     @Id
     private UUID id;

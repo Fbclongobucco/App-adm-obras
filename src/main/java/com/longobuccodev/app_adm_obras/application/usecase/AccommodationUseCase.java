@@ -14,6 +14,7 @@ import com.longobuccodev.app_adm_obras.core.repository.EmployeeRepository;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -23,18 +24,22 @@ public class AccommodationUseCase {
     private final AccommodationRepository accommodationRepository;
     private final ProjectRepository projectRepository;
     private final EmployeeRepository employeeRepository;
+    private final Clock clock;
 
     public AccommodationUseCase(AccommodationRepository accommodationRepository,
                                 ProjectRepository projectRepository,
-                                EmployeeRepository employeeRepository) {
+                                EmployeeRepository employeeRepository,
+                                Clock clock) {
         this.accommodationRepository = accommodationRepository;
         this.projectRepository = projectRepository;
         this.employeeRepository = employeeRepository;
+        this.clock = clock;
     }
 
     public AccommodationResponseDTO create(AccommodationRequestDTO dto) {
         Accommodation accommodation = AccommodationMapper.toDomain(dto, findProject(dto.projectId()),
                 findEmployees(dto.employeeIds()));
+        accommodation.markCreated(clock.instant());
         return AccommodationMapper.toResponse(accommodationRepository.save(accommodation));
     }
 
@@ -62,6 +67,7 @@ public class AccommodationUseCase {
         Accommodation existing = findAccommodation(id);
         Accommodation updated = AccommodationMapper.toDomain(existing, dto, findProject(dto.projectId()),
                 findEmployees(dto.employeeIds()));
+        updated.touchFrom(existing, clock.instant());
         accommodationRepository.update(id, updated);
         return AccommodationMapper.toResponse(updated);
     }

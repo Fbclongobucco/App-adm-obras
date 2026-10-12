@@ -4,9 +4,13 @@ import com.longobuccodev.app_adm_obras.application.dto.client.ClientResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
 import com.longobuccodev.app_adm_obras.core.repository.ClientRepository;
+import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.client;
@@ -21,13 +25,16 @@ import static org.mockito.Mockito.when;
 
 class ClientUseCaseTest {
 
+    static final Instant CLOCK_NOW = Instant.parse("2026-01-15T10:00:00Z");
+    static final Clock CLOCK = Clock.fixed(CLOCK_NOW, ZoneOffset.UTC);
+
     private ClientRepository clientRepository;
     private ClientUseCase useCase;
 
     @BeforeEach
     void setUp() {
         clientRepository = mock(ClientRepository.class);
-        useCase = new ClientUseCase(clientRepository);
+        useCase = new ClientUseCase(clientRepository, mock(ProjectRepository.class), CLOCK);
     }
 
     @Test

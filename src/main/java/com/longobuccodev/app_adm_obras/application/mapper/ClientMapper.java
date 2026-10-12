@@ -29,7 +29,9 @@ public final class ClientMapper {
             return null;
         }
         return new ClientSummaryDTO(client.getId(), client.getName(), client.getEmail(), client.getPhone(),
-                AddressMapper.toResponse(client.getAddress()));
+                AddressMapper.toResponse(client.getAddress()),
+                client.getCreatedAt(),
+                client.getUpdatedAt());
     }
 
     public static ClientResponseDTO toResponse(Client client) {
@@ -41,7 +43,9 @@ public final class ClientMapper {
                 AddressMapper.toResponse(client.getAddress()),
                 client.getProjects().stream()
                         .map(ProjectMapper::toSummary)
-                        .collect(Collectors.toCollection(LinkedHashSet::new))
+                        .collect(Collectors.toCollection(LinkedHashSet::new)),
+                client.getCreatedAt(),
+                client.getUpdatedAt()
         );
     }
 }

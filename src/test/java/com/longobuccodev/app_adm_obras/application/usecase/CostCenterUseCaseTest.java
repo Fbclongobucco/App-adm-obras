@@ -4,9 +4,14 @@ import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterResp
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
+import com.longobuccodev.app_adm_obras.core.repository.EmployeeRepository;
+import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.costCenter;
@@ -20,13 +25,17 @@ import static org.mockito.Mockito.when;
 
 class CostCenterUseCaseTest {
 
+    static final Instant CLOCK_NOW = Instant.parse("2026-01-15T10:00:00Z");
+    static final Clock CLOCK = Clock.fixed(CLOCK_NOW, ZoneOffset.UTC);
+
     private CostCenterRepository costCenterRepository;
     private CostCenterUseCase useCase;
 
     @BeforeEach
     void setUp() {
         costCenterRepository = mock(CostCenterRepository.class);
-        useCase = new CostCenterUseCase(costCenterRepository);
+        useCase = new CostCenterUseCase(costCenterRepository, mock(EmployeeRepository.class),
+                mock(ProjectRepository.class), CLOCK);
     }
 
     @Test

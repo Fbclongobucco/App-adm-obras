@@ -40,7 +40,9 @@ public final class EmployeeMapper {
                 AddressMapper.toResponse(employee.getAddress()),
                 employee.getBirthDate(),
                 CostCenterMapper.toResponse(employee.getCostCenter()),
-                employee.getRole()
+                employee.getRole(),
+                employee.getCreatedAt(),
+                employee.getUpdatedAt()
         );
     }
 
@@ -57,7 +59,9 @@ public final class EmployeeMapper {
                 employee.getRole(),
                 employee.getProjects().stream()
                         .map(ProjectMapper::toSummary)
-                        .collect(Collectors.toCollection(LinkedHashSet::new))
+                        .collect(Collectors.toCollection(LinkedHashSet::new)),
+                employee.getCreatedAt(),
+                employee.getUpdatedAt()
         );
     }
 }

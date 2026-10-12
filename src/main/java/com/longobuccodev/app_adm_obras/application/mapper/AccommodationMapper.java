@@ -38,7 +38,9 @@ public final class AccommodationMapper {
                 accommodation.getCapacity(),
                 accommodation.getDays(),
                 accommodation.getIsContract(),
-                accommodation.getTotalPrice()
+                accommodation.getTotalPrice(),
+                accommodation.getCreatedAt(),
+                accommodation.getUpdatedAt()
         );
     }
 
@@ -55,7 +57,9 @@ public final class AccommodationMapper {
                 accommodation.getEmployees().stream()
                         .map(EmployeeMapper::toSummary)
                         .collect(Collectors.toCollection(LinkedHashSet::new)),
-                accommodation.getTotalPrice()
+                accommodation.getTotalPrice(),
+                accommodation.getCreatedAt(),
+                accommodation.getUpdatedAt()
         );
     }
 

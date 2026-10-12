@@ -18,4 +18,11 @@ public interface AccommodationJpaRepository extends JpaRepository<AccommodationE
             WHERE accommodation.project.id = :projectId
             """)
     List<AccommodationEntity> findByProjectId(@Param("projectId") UUID projectId);
+
+    @Query("""
+            SELECT COUNT(accommodation) > 0 FROM AccommodationEntity accommodation
+            JOIN accommodation.employees employee
+            WHERE employee.id = :employeeId
+            """)
+    boolean existsByEmployeeId(@Param("employeeId") UUID employeeId);
 }

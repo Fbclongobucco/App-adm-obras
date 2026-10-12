@@ -7,9 +7,12 @@ import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundExc
 import com.longobuccodev.app_adm_obras.application.mapper.ClientMapper;
 import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
+import com.longobuccodev.app_adm_obras.core.exception.ConflictException;
 import com.longobuccodev.app_adm_obras.core.repository.ClientRepository;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
+import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,12 +20,20 @@ public class ClientUseCase {
 
     private final ClientRepository clientRepository;
 
-    public ClientUseCase(ClientRepository clientRepository) {
+    private final ProjectRepository projectRepository;
+    private final Clock clock;
+
+    public ClientUseCase(ClientRepository clientRepository, ProjectRepository projectRepository, Clock clock) {
         this.clientRepository = clientRepository;
+        this.projectRepository = projectRepository;
+        this.clock = clock;
     }
 
     public ClientResponseDTO create(ClientRequestDTO dto) {
-        return ClientMapper.toResponse(clientRepository.save(ClientMapper.toDomain(dto)));
+        Client client = ClientMapper.toDomain(dto);
+        requireUniqueEmail(client);
+        client.markCreated(clock.instant());
+        return ClientMapper.toResponse(clientRepository.save(client));
     }
 
     public ClientResponseDTO findById(UUID id) {
@@ -45,14 +56,24 @@ public class ClientUseCase {
     }
 
     public ClientResponseDTO update(UUID id, ClientRequestDTO dto) {
-        Client updated = ClientMapper.toDomain(findClient(id), dto);
+        Client existing = findClient(id);
+        Client updated = ClientMapper.toDomain(existing, dto);
+        requireUniqueEmail(updated);
+        updated.touchFrom(existing, clock.instant());
         clientRepository.update(updated);
         return ClientMapper.toResponse(updated);
     }
 
     public void delete(UUID id) {
-        findClient(id);
+        Client client = findClient(id);
+        Conflicts.requireNone(projectRepository.findByClient(client),
+                () -> ConflictException.inUse("client", "projects"));
         clientRepository.deleteById(id);
+    }
+
+    private void requireUniqueEmail(Client client) {
+        Conflicts.requireUnique(clientRepository.findByEmail(client.getEmail()), Client::getId, client.getId(),
+                () -> ConflictException.duplicate("client", "email", client.getEmail()));
     }
 
     private Client findClient(UUID id) {

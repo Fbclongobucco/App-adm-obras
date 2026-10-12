@@ -14,8 +14,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MealTest {
 
     private static Meal newMeal() {
-        return new Meal(null, " Restaurante  do  Ze ", new BigDecimal("25.90"), null, null, null,
-                MealType.LUNCH, 4, LocalDate.now());
+        return new Meal(null, restaurant(), new BigDecimal("25.90"), null, MealType.LUNCH, 4, LocalDate.now());
     }
 
     @Test
@@ -23,7 +22,7 @@ class MealTest {
         Meal meal = newMeal();
 
         assertThat(meal.getId()).isNotNull();
-        assertThat(meal.getRestaurantName()).isEqualTo("Restaurante do Ze");
+        assertThat(meal.getRestaurant().getName()).isEqualTo("Restaurante do Ze");
         assertThat(meal.getPrice()).isEqualByComparingTo("25.90");
         assertThat(meal.getQuantity()).isEqualTo(4);
         assertThat(meal.getTotalPrice()).isEqualByComparingTo("103.60");
@@ -35,8 +34,8 @@ class MealTest {
     void shouldKeepProvidedIdAndGenerateWhenNull() {
         UUID id = UUID.randomUUID();
 
-        assertThat(new Meal(id, "Restaurante do Ze", BigDecimal.ONE, false, null, null,
-                MealType.LUNCH, 1, LocalDate.now()).getId()).isEqualTo(id);
+        assertThat(new Meal(id, restaurant(), BigDecimal.ONE, false, MealType.LUNCH, 1, LocalDate.now()).getId())
+                .isEqualTo(id);
         assertThat(newMeal().getId()).isNotNull();
     }
 
@@ -73,21 +72,21 @@ class MealTest {
     }
 
     @Test
-    void shouldRejectBlankRestaurantName() {
+    void shouldRequireRestaurant() {
         Meal meal = newMeal();
 
-        assertThatThrownBy(() -> meal.setRestaurantName(" "))
+        assertThatThrownBy(() -> meal.setRestaurant(null))
                 .isInstanceOf(InvalidMealException.class)
-                .extracting("errorCode").isEqualTo("meal.invalid.restaurant_name.blank");
+                .extracting("errorCode").isEqualTo("meal.invalid.restaurant");
     }
 
     @Test
-    void shouldRejectLongRestaurantName() {
-        Meal meal = newMeal();
+    void shouldTakeProjectFromRestaurant() {
+        Restaurant restaurant = restaurant();
 
-        assertThatThrownBy(() -> meal.setRestaurantName("a".repeat(101)))
-                .isInstanceOf(InvalidMealException.class)
-                .extracting("errorCode").isEqualTo("meal.invalid.restaurant_name.length");
+        Meal meal = new Meal(null, restaurant, BigDecimal.ONE, false, MealType.DINNER, 1, LocalDate.now());
+
+        assertThat(meal.getProject()).isSameAs(restaurant.getProject());
     }
 
     @Test
@@ -149,8 +148,16 @@ class MealTest {
 
     @Test
     void shouldValidateOnConstructor() {
-        assertThatThrownBy(() -> new Meal(null, "Restaurante do Ze", BigDecimal.ONE, false, null, null,
-                null, 1, LocalDate.now()))
+        assertThatThrownBy(() -> new Meal(null, restaurant(), BigDecimal.ONE, false, null, 1, LocalDate.now()))
                 .isInstanceOf(InvalidMealException.class);
+    }
+
+    private static Restaurant restaurant() {
+        Project project = new Project(null, "OS-100", null, new CostCenter(null, "Centro Norte", "11222333000181"),
+                LocalDate.of(2026, 1, 5), null,
+                new Client(null, "Cliente Alfa", "alfa@exemplo.test", "1133334444",
+                        new Address(null, "Rua A", "1", "Campinas", "SP", "Brasil", "Centro", "13010000")),
+                false);
+        return new Restaurant(null, " Restaurante  do  Ze ", null, null, project);
     }
 }

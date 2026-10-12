@@ -11,6 +11,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -18,7 +20,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "app_user")
-public class UserEntity {
+public class UserEntity extends AuditedEntity {
 
     @Id
     private UUID id;
@@ -39,6 +41,8 @@ public class UserEntity {
     @CollectionTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
+    // VARCHAR em todos os bancos, como nas migracoes; sem isso o H2Dialect usa ENUM nativo
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private Set<Role> roles = EnumSet.noneOf(Role.class);
 
     public static UserEntity create() {

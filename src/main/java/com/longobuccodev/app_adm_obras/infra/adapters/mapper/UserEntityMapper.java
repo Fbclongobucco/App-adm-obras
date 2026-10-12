@@ -32,6 +32,7 @@ public final class UserEntityMapper {
         entity.setRoles(user.getRoles().isEmpty()
                 ? EnumSet.noneOf(Role.class)
                 : EnumSet.copyOf(user.getRoles()));
+        AuditMapping.copy(user, entity);
     }
 
     public static User toDomain(UserEntity entity) {
@@ -43,6 +44,6 @@ public final class UserEntityMapper {
         if (entity.getRoles() != null) {
             entity.getRoles().forEach(user::addRole);
         }
-        return user;
+        return AuditMapping.restore(user, entity);
     }
 }

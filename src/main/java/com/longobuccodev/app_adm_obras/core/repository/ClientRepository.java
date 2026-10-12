@@ -10,6 +10,8 @@ public interface ClientRepository {
     Client save(Client client);
     Client findById(UUID id);
     Client findByProjectId(UUID projectId);
+
+    Client findByEmail(String email);
     List<Client> findAll();
     Page<Client> findAll(PageRequest request);
     void delete(Client client);

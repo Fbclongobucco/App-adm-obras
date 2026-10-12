@@ -1,6 +1,7 @@
 package com.longobuccodev.app_adm_obras.application.dto.accommodation;
 
 import com.longobuccodev.app_adm_obras.application.dto.address.AddressResponseDTO;
+import java.time.Instant;
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -12,6 +13,8 @@ public record AccommodationSummaryDTO(
         Integer capacity,
         Integer days,
         Boolean isContract,
-        BigDecimal totalPrice
+        BigDecimal totalPrice,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

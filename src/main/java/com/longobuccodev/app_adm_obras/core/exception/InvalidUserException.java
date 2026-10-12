@@ -44,8 +44,4 @@ public class InvalidUserException extends CoreDomainException {
                 "User password must be at least " + MIN_PASSWORD_LENGTH + " characters long, got: " + length
         );
     }
-
-    public static InvalidUserException duplicateEmail(String email) {
-        return new InvalidUserException("user.duplicate.email", "User email is already in use: " + email);
-    }
 }

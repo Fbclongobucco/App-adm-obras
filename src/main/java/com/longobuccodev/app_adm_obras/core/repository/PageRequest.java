@@ -2,7 +2,7 @@ package com.longobuccodev.app_adm_obras.core.repository;
 
 import com.longobuccodev.app_adm_obras.core.exception.InvalidPageException;
 
-public record PageRequest(int page, int size) {
+public record PageRequest(int page, int size, Sort sort) {
 
     public static final int MAX_SIZE = 100;
     public static final int DEFAULT_SIZE = 20;
@@ -16,6 +16,10 @@ public record PageRequest(int page, int size) {
         }
     }
 
+    public PageRequest(int page, int size) {
+        this(page, size, null);
+    }
+
     public static PageRequest of(int page, int size) {
         return new PageRequest(page, size);
     }
@@ -26,6 +30,10 @@ public record PageRequest(int page, int size) {
 
     public static PageRequest ofSize(int size) {
         return new PageRequest(0, size);
+    }
+
+    public PageRequest withSort(Sort sort) {
+        return new PageRequest(page, size, sort);
     }
 
     public int offset() {

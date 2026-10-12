@@ -9,8 +9,9 @@ import com.longobuccodev.app_adm_obras.core.repository.MealRepository;
 import com.longobuccodev.app_adm_obras.core.repository.Page;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.infra.adapters.mapper.MealEntityMapper;
+import com.longobuccodev.app_adm_obras.infra.entities.RestaurantEntity;
 import com.longobuccodev.app_adm_obras.infra.repositories.MealJpaRepository;
-import com.longobuccodev.app_adm_obras.infra.repositories.ProjectJpaRepository;
+import com.longobuccodev.app_adm_obras.infra.repositories.RestaurantJpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,21 +23,17 @@ import java.util.UUID;
 public class MealRepositoryAdapter implements MealRepository {
 
     private final MealJpaRepository jpaRepository;
-    private final ProjectJpaRepository projectJpaRepository;
+    private final RestaurantJpaRepository restaurantJpaRepository;
 
-    public MealRepositoryAdapter(MealJpaRepository jpaRepository, ProjectJpaRepository projectJpaRepository) {
+    public MealRepositoryAdapter(MealJpaRepository jpaRepository, RestaurantJpaRepository restaurantJpaRepository) {
         this.jpaRepository = jpaRepository;
-        this.projectJpaRepository = projectJpaRepository;
+        this.restaurantJpaRepository = restaurantJpaRepository;
     }
 
     @Override
     @Transactional
     public Meal save(Meal meal) {
-        var entity = MealEntityMapper.toEntity(meal);
-        if (meal.getProject() != null) {
-            entity.setProject(projectJpaRepository.findById(meal.getProject().getId()).orElse(null));
-        }
-        return MealEntityMapper.toDomain(jpaRepository.save(entity));
+        return MealEntityMapper.toDomain(jpaRepository.save(MealEntityMapper.toEntity(meal, restaurantOf(meal))));
     }
 
     @Override
@@ -116,12 +113,18 @@ public class MealRepositoryAdapter implements MealRepository {
     @Override
     @Transactional
     public void update(Meal meal) {
-        jpaRepository.findById(meal.getId()).ifPresent(entity -> {
-            MealEntityMapper.apply(meal, entity);
-            if (meal.getProject() != null) {
-                projectJpaRepository.findById(meal.getProject().getId())
-                        .ifPresent(entity::setProject);
-            }
-        });
+        jpaRepository.findById(meal.getId())
+                .ifPresent(entity -> MealEntityMapper.apply(meal, entity, restaurantOf(meal)));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByRestaurantId(UUID restaurantId) {
+        return jpaRepository.existsByRestaurantId(restaurantId);
+    }
+
+    /** Entidade gerenciada: a obra da refeicao e copiada dela. */
+    private RestaurantEntity restaurantOf(Meal meal) {
+        return restaurantJpaRepository.findById(meal.getRestaurant().getId()).orElseThrow();
     }
 }

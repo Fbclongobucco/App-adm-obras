@@ -27,20 +27,24 @@ public final class ProjectEntityMapper {
             entity.getEmployees().forEach(employeeEntity ->
                     project.addEmployee(EmployeeEntityMapper.toDomain(employeeEntity)));
         }
-        linkMeal(project, MealEntityMapper.toDomain(lunch, false), true);
-        linkMeal(project, MealEntityMapper.toDomain(dinner, false), false);
-        return project;
+        if (entity.getRestaurants() != null) {
+            entity.getRestaurants().forEach(restaurantEntity ->
+                    project.addRestaurant(RestaurantEntityMapper.toDomain(restaurantEntity)));
+        }
+        linkMeal(project, MealEntityMapper.toDomain(lunch), true);
+        linkMeal(project, MealEntityMapper.toDomain(dinner), false);
+        return AuditMapping.restore(project, entity);
     }
 
     public static Project toDomainShallow(ProjectEntity entity) {
         if (entity == null) {
             return null;
         }
-        return new Project(entity.getId(), entity.getOs(), entity.getDescription(),
+        return AuditMapping.restore(new Project(entity.getId(), entity.getOs(), entity.getDescription(),
                 CostCenterEntityMapper.toDomain(entity.getCostCenter()),
                 entity.getStartDate(), entity.getEndDate(),
                 ClientEntityMapper.toDomain(entity.getClient()),
-                entity.getIsCompleted());
+                entity.getIsCompleted()), entity);
     }
 
     public static ProjectEntity toEntity(Project domain) {
@@ -63,6 +67,7 @@ public final class ProjectEntityMapper {
         entity.setEndDate(domain.getEndDate());
         entity.setIsCompleted(domain.getIsCompleted());
         entity.setTotalPrice(domain.getTotalPrice());
+        AuditMapping.copy(domain, entity);
     }
 
     private static void linkMeal(Project project, Meal meal, boolean lunch) {

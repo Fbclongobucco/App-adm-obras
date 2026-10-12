@@ -7,9 +7,14 @@ import com.longobuccodev.app_adm_obras.core.domain.Project;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface ProjectRepository {
+
+    /** Campos pelos quais a listagem paginada de obras pode ser ordenada. */
+    Set<String> SORT_FIELDS = Set.of("updatedAt", "createdAt", "os", "startDate");
+
 
     Project save(Project project);
     Project findById(UUID id);

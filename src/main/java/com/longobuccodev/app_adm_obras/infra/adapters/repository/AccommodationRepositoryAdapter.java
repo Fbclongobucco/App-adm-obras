@@ -71,6 +71,12 @@ public class AccommodationRepositoryAdapter implements AccommodationRepository {
 
     @Override
     @Transactional(readOnly = true)
+    public boolean existsByEmployeeId(UUID employeeId) {
+        return jpaRepository.existsByEmployeeId(employeeId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Accommodation> findByProjectId(UUID projectId) {
         return jpaRepository.findByProjectId(projectId).stream().map(this::toDomain).toList();
     }

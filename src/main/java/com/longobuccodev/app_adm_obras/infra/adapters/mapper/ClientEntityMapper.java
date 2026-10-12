@@ -12,8 +12,8 @@ public final class ClientEntityMapper {
         if (entity == null) {
             return null;
         }
-        return new Client(entity.getId(), entity.getName(), entity.getEmail(), entity.getPhone(),
-                AddressEntityMapper.toDomain(entity.getAddress()));
+        return AuditMapping.restore(new Client(entity.getId(), entity.getName(), entity.getEmail(),
+                entity.getPhone(), AddressEntityMapper.toDomain(entity.getAddress())), entity);
     }
 
     public static ClientEntity toEntity(Client domain) {
@@ -34,6 +34,7 @@ public final class ClientEntityMapper {
         entity.setName(domain.getName());
         entity.setEmail(domain.getEmail());
         entity.setPhone(domain.getPhone());
+        AuditMapping.copy(domain, entity);
         if (domain.getAddress() == null) {
             entity.setAddress(null);
             return;

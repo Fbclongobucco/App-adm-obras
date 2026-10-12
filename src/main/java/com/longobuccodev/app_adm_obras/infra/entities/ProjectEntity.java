@@ -9,6 +9,7 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
@@ -19,7 +20,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "project")
-public class ProjectEntity {
+public class ProjectEntity extends AuditedEntity {
 
     @Id
     private UUID id;
@@ -46,6 +47,11 @@ public class ProjectEntity {
 
     @OneToMany(mappedBy = "project")
     private Set<AccommodationEntity> accommodations = new LinkedHashSet<>();
+
+    // Leitura apenas: o vinculo e gravado pelo restaurante
+    @OneToMany(mappedBy = "project")
+    @OrderBy("name")
+    private Set<RestaurantEntity> restaurants = new LinkedHashSet<>();
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "project_employee",
@@ -128,6 +134,10 @@ public class ProjectEntity {
 
     public void setAccommodations(Set<AccommodationEntity> accommodations) {
         this.accommodations = accommodations;
+    }
+
+    public Set<RestaurantEntity> getRestaurants() {
+        return restaurants;
     }
 
     public Set<EmployeeEntity> getEmployees() {

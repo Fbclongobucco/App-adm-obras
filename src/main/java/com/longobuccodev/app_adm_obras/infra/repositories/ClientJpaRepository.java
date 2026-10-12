@@ -7,4 +7,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ClientJpaRepository extends JpaRepository<ClientEntity, UUID> {
+
+    Optional<ClientEntity> findFirstByEmailIgnoreCase(String email);
 }

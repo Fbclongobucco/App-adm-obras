@@ -41,6 +41,12 @@ public class ClientRepositoryAdapter implements ClientRepository {
 
     @Override
     @Transactional(readOnly = true)
+    public Client findByEmail(String email) {
+        return toDomain(jpaRepository.findFirstByEmailIgnoreCase(email).orElse(null));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Client findByProjectId(UUID projectId) {
         return projectJpaRepository.findById(projectId)
                 .map(ProjectEntity::getClient)

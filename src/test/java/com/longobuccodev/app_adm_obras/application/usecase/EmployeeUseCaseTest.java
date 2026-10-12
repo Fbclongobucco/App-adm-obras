@@ -4,11 +4,16 @@ import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeResponse
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
+import com.longobuccodev.app_adm_obras.core.repository.AccommodationRepository;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
 import com.longobuccodev.app_adm_obras.core.repository.EmployeeRepository;
+import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,6 +30,9 @@ import static org.mockito.Mockito.when;
 
 class EmployeeUseCaseTest {
 
+    static final Instant CLOCK_NOW = Instant.parse("2026-01-15T10:00:00Z");
+    static final Clock CLOCK = Clock.fixed(CLOCK_NOW, ZoneOffset.UTC);
+
     private EmployeeRepository employeeRepository;
     private CostCenterRepository costCenterRepository;
     private EmployeeUseCase useCase;
@@ -33,7 +41,8 @@ class EmployeeUseCaseTest {
     void setUp() {
         employeeRepository = mock(EmployeeRepository.class);
         costCenterRepository = mock(CostCenterRepository.class);
-        useCase = new EmployeeUseCase(employeeRepository, costCenterRepository);
+        useCase = new EmployeeUseCase(employeeRepository, costCenterRepository,
+                mock(ProjectRepository.class), mock(AccommodationRepository.class), CLOCK);
     }
 
     @Test

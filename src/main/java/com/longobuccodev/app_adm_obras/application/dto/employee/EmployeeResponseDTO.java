@@ -5,6 +5,7 @@ import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterResp
 import com.longobuccodev.app_adm_obras.application.dto.project.ProjectSummaryDTO;
 import com.longobuccodev.app_adm_obras.core.domain.Employee.Role;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
@@ -19,6 +20,8 @@ public record EmployeeResponseDTO(
         LocalDate birthDate,
         CostCenterResponseDTO costCenter,
         Role role,
-        Set<ProjectSummaryDTO> projects
+        Set<ProjectSummaryDTO> projects,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

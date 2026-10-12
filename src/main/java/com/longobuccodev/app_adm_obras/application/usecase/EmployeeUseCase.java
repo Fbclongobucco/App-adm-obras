@@ -8,10 +8,14 @@ import com.longobuccodev.app_adm_obras.application.mapper.EmployeeMapper;
 import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
+import com.longobuccodev.app_adm_obras.core.exception.ConflictException;
+import com.longobuccodev.app_adm_obras.core.repository.AccommodationRepository;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
 import com.longobuccodev.app_adm_obras.core.repository.EmployeeRepository;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
+import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,13 +24,24 @@ public class EmployeeUseCase {
     private final EmployeeRepository employeeRepository;
     private final CostCenterRepository costCenterRepository;
 
-    public EmployeeUseCase(EmployeeRepository employeeRepository, CostCenterRepository costCenterRepository) {
+    private final ProjectRepository projectRepository;
+    private final AccommodationRepository accommodationRepository;
+    private final Clock clock;
+
+    public EmployeeUseCase(EmployeeRepository employeeRepository, CostCenterRepository costCenterRepository,
+                           ProjectRepository projectRepository, AccommodationRepository accommodationRepository,
+                           Clock clock) {
         this.employeeRepository = employeeRepository;
         this.costCenterRepository = costCenterRepository;
+        this.projectRepository = projectRepository;
+        this.accommodationRepository = accommodationRepository;
+        this.clock = clock;
     }
 
     public EmployeeResponseDTO create(EmployeeRequestDTO dto) {
         Employee employee = EmployeeMapper.toDomain(dto, findCostCenter(dto.costCenterId()));
+        requireUniqueDocuments(employee);
+        employee.markCreated(clock.instant());
         return EmployeeMapper.toResponse(employeeRepository.save(employee));
     }
 
@@ -53,14 +68,28 @@ public class EmployeeUseCase {
     }
 
     public EmployeeResponseDTO update(UUID id, EmployeeRequestDTO dto) {
-        Employee updated = EmployeeMapper.toDomain(findEmployee(id), dto, findCostCenter(dto.costCenterId()));
+        Employee existing = findEmployee(id);
+        Employee updated = EmployeeMapper.toDomain(existing, dto, findCostCenter(dto.costCenterId()));
+        requireUniqueDocuments(updated);
+        updated.touchFrom(existing, clock.instant());
         employeeRepository.update(updated);
         return EmployeeMapper.toResponse(updated);
     }
 
     public void delete(UUID id) {
-        findEmployee(id);
+        Employee employee = findEmployee(id);
+        Conflicts.requireNone(projectRepository.findByEmployee(employee),
+                () -> ConflictException.inUse("employee", "projects"));
+        Conflicts.requireFalse(accommodationRepository.existsByEmployeeId(id),
+                () -> ConflictException.inUse("employee", "accommodations"));
         employeeRepository.deleteById(id);
+    }
+
+    private void requireUniqueDocuments(Employee employee) {
+        Conflicts.requireUnique(employeeRepository.findByCpf(employee.getCpf()), Employee::getId, employee.getId(),
+                () -> ConflictException.duplicate("employee", "cpf", employee.getCpf()));
+        Conflicts.requireUnique(employeeRepository.findByEmail(employee.getEmail()), Employee::getId,
+                employee.getId(), () -> ConflictException.duplicate("employee", "email", employee.getEmail()));
     }
 
     private Employee findEmployee(UUID id) {

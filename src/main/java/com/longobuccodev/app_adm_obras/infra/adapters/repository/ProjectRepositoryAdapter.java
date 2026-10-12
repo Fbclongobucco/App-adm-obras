@@ -22,10 +22,18 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Repository
 public class ProjectRepositoryAdapter implements ProjectRepository {
+
+    // Campo de ordenacao do dominio -> propriedade de ProjectEntity
+    private static final Map<String, String> SORT_PROPERTIES = Map.of(
+            "updatedAt", "updatedAt",
+            "createdAt", "createdAt",
+            "os", "os",
+            "startDate", "startDate");
 
     private final ProjectJpaRepository jpaRepository;
     private final CostCenterJpaRepository costCenterJpaRepository;
@@ -78,7 +86,7 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
     @Transactional(readOnly = true)
     public Page<Project> findAll(PageRequest request) {
         return SpringPageSupport.toDomain(
-                jpaRepository.findAll(SpringPageSupport.toPageable(request)), this::toDomain);
+                jpaRepository.findAll(SpringPageSupport.toPageable(request, SORT_PROPERTIES)), this::toDomain);
     }
 
     @Override
@@ -164,23 +172,6 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
                 entity.getAccommodations().add(accommodationEntity);
             });
         }
-        assignMeals(project, entity);
-    }
-
-    private void assignMeals(Project project, ProjectEntity entity) {
-        mealJpaRepository.findByProjectId(entity.getId()).forEach(mealEntity -> mealEntity.setProject(null));
-        assignMeal(project.getLunch(), entity, Meal.MealType.LUNCH);
-        assignMeal(project.getDinner(), entity, Meal.MealType.DINNER);
-    }
-
-    private void assignMeal(Meal meal, ProjectEntity entity, Meal.MealType mealType) {
-        if (meal == null) {
-            return;
-        }
-        mealJpaRepository.findById(meal.getId()).ifPresent(mealEntity -> {
-            mealEntity.setProject(entity);
-            mealEntity.setMealType(mealType);
-        });
     }
 
     private Project toDomain(ProjectEntity entity) {

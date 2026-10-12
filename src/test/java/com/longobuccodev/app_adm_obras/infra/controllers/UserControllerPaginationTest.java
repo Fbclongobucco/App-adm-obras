@@ -9,6 +9,7 @@ import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import com.longobuccodev.app_adm_obras.infra.config.ClockConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -16,6 +17,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -29,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = UserController.class)
-@Import(com.longobuccodev.app_adm_obras.infra.security.SecurityConfig.class)
+@Import({com.longobuccodev.app_adm_obras.infra.security.SecurityConfig.class, ClockConfig.class})
 class UserControllerPaginationTest {
 
 
@@ -117,7 +119,7 @@ class UserControllerPaginationTest {
         int totalPages = (int) Math.ceil((double) total / size);
         return new PageResponseDTO<>(
                 List.of(new UserResponseDTO(UUID.randomUUID(), "Maria Souza", "maria@email.com", true,
-                        Set.of(Role.ADMIN))),
+                        Set.of(Role.ADMIN), Instant.EPOCH, Instant.EPOCH)),
                 page, size, total, totalPages, page == 0, page >= totalPages - 1);
     }
 }

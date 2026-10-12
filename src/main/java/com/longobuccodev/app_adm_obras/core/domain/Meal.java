@@ -7,32 +7,28 @@ import java.time.LocalDate;
 import java.util.Objects;
 import java.util.UUID;
 
-public class Meal {
+public class Meal extends Audited {
 
-    private static final int MIN_RESTAURANT_NAME_LENGTH = 2;
-    private static final int MAX_RESTAURANT_NAME_LENGTH = 100;
     private static final int MIN_QUANTITY = 1;
     private static final int MAX_QUANTITY = 10000;
 
     private UUID id;
-    private String restaurantName;
+    private Restaurant restaurant;
     private BigDecimal price;
     private Boolean isBilled;
-    private Address address;
     private Project project;
     private MealType mealType;
     private Integer quantity;
     private LocalDate date;
     private BigDecimal totalPrice;
 
-    public Meal(UUID id, String restaurantName, BigDecimal price, Boolean isBilled, Address address,
-                Project project, MealType mealType, Integer quantity, LocalDate date) {
+    /** A obra da refeicao e a obra do restaurante. */
+    public Meal(UUID id, Restaurant restaurant, BigDecimal price, Boolean isBilled, MealType mealType,
+                Integer quantity, LocalDate date) {
         setId(id);
-        setRestaurantName(restaurantName);
+        setRestaurant(restaurant);
         setPrice(price);
         setBilled(isBilled);
-        setAddress(address);
-        setProject(project);
         setMealType(mealType);
         setQuantity(quantity);
         setDate(date);
@@ -46,12 +42,16 @@ public class Meal {
         this.id = id == null ? UUID.randomUUID() : id;
     }
 
-    public String getRestaurantName() {
-        return restaurantName;
+    public Restaurant getRestaurant() {
+        return restaurant;
     }
 
-    public void setRestaurantName(String restaurantName) {
-        this.restaurantName = validateRestaurantName(restaurantName);
+    public void setRestaurant(Restaurant restaurant) {
+        if (restaurant == null) {
+            throw InvalidMealException.missingRestaurant();
+        }
+        this.restaurant = restaurant;
+        this.project = restaurant.getProject();
     }
 
     public BigDecimal getPrice() {
@@ -73,14 +73,6 @@ public class Meal {
 
     public void setBilled(Boolean billed) {
         this.isBilled = validateBilled(billed);
-    }
-
-    public Address getAddress() {
-        return address;
-    }
-
-    public void setAddress(Address address) {
-        this.address = address;
     }
 
     public Project getProject() {
@@ -140,17 +132,6 @@ public class Meal {
         return price.multiply(BigDecimal.valueOf(quantity));
     }
 
-    private static String validateRestaurantName(String restaurantName) {
-        if (restaurantName == null || restaurantName.isBlank()) {
-            throw InvalidMealException.blankRestaurantName();
-        }
-        String normalized = restaurantName.strip().replaceAll("\\s+", " ");
-        if (normalized.length() < MIN_RESTAURANT_NAME_LENGTH
-                || normalized.length() > MAX_RESTAURANT_NAME_LENGTH) {
-            throw InvalidMealException.invalidRestaurantName(normalized);
-        }
-        return normalized;
-    }
 
     private static BigDecimal validatePrice(BigDecimal price) {
         if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {

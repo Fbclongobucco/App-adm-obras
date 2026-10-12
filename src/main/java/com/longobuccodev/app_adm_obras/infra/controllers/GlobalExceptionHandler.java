@@ -3,8 +3,10 @@ package com.longobuccodev.app_adm_obras.infra.controllers;
 import com.longobuccodev.app_adm_obras.application.dto.common.ErrorResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.core.exception.AuthenticationFailedException;
+import com.longobuccodev.app_adm_obras.core.exception.ConflictException;
 import com.longobuccodev.app_adm_obras.core.exception.CoreDomainException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -26,6 +28,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleDomain(CoreDomainException ex,
                                                          HttpServletRequest request) {
         return build(HttpStatus.BAD_REQUEST, ex.getErrorCode(), ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponseDTO> handleConflict(ConflictException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, ex.getErrorCode(), ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleIntegrityViolation(DataIntegrityViolationException ex,
+                                                                     HttpServletRequest request) {
+        String errorCode = IntegrityViolationTranslator.errorCode(ex);
+        return build(HttpStatus.CONFLICT, errorCode, IntegrityViolationTranslator.message(errorCode), request);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

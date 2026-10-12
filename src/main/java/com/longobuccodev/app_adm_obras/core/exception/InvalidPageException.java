@@ -13,4 +13,8 @@ public class InvalidPageException extends CoreDomainException {
     public static InvalidPageException invalidSize(int size) {
         return new InvalidPageException("page.invalid.size", "Page size must be between 1 and 100: " + size);
     }
+
+    public static InvalidPageException invalidSort(String sort) {
+        return new InvalidPageException("page.invalid.sort", "Unsupported sort: " + sort);
+    }
 }

@@ -5,8 +5,11 @@ import com.longobuccodev.app_adm_obras.application.dto.client.ClientSummaryDTO;
 import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterResponseDTO;
 import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeSummaryDTO;
 import com.longobuccodev.app_adm_obras.application.dto.meal.MealSummaryDTO;
+import com.longobuccodev.app_adm_obras.application.dto.restaurant.RestaurantSummaryDTO;
+import java.time.Instant;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -22,7 +25,10 @@ public record ProjectResponseDTO(
         Set<EmployeeSummaryDTO> employees,
         MealSummaryDTO lunch,
         MealSummaryDTO dinner,
+        List<RestaurantSummaryDTO> restaurants,
         BigDecimal totalPrice,
-        Boolean isCompleted
+        Boolean isCompleted,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

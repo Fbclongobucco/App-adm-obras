@@ -1,6 +1,7 @@
 package com.longobuccodev.app_adm_obras.application.dto.client;
 
 import com.longobuccodev.app_adm_obras.application.dto.address.AddressResponseDTO;
+import java.time.Instant;
 import java.util.UUID;
 
 public record ClientSummaryDTO(
@@ -8,6 +9,8 @@ public record ClientSummaryDTO(
         String name,
         String email,
         String phone,
-        AddressResponseDTO address
+        AddressResponseDTO address,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

@@ -20,7 +20,7 @@ public final class AccommodationEntityMapper {
             entity.getEmployees().forEach(employeeEntity ->
                     accommodation.addEmployee(EmployeeEntityMapper.toDomain(employeeEntity)));
         }
-        return accommodation;
+        return AuditMapping.restore(accommodation, entity);
     }
 
     public static AccommodationEntity toEntity(Accommodation domain) {
@@ -43,6 +43,7 @@ public final class AccommodationEntityMapper {
         entity.setDays(domain.getDays());
         entity.setIsContract(domain.getIsContract());
         entity.setTotalPrice(domain.getTotalPrice());
+        AuditMapping.copy(domain, entity);
         if (domain.getAddress() == null) {
             entity.setAddress(null);
         } else if (entity.getAddress() == null) {

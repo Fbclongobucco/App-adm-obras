@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.mealRequest;
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.project;
+import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.restaurant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MealMapperTest {
@@ -15,21 +16,22 @@ class MealMapperTest {
     @Test
     void shouldMapDomainToResponseWithProject() {
         Project project = project();
-        Meal meal = MealMapper.toDomain(mealRequest(null, MealType.LUNCH), project);
+        Meal meal = MealMapper.toDomain(mealRequest(null, MealType.LUNCH), restaurant(project));
 
         MealResponseDTO response = MealMapper.toResponse(meal);
 
         assertThat(response.project().id()).isEqualTo(project.getId());
         assertThat(response.project().os()).isEqualTo("OS-1234");
+        assertThat(response.restaurant().name()).isEqualTo("Restaurante do Ze");
         assertThat(response.mealType()).isEqualTo(MealType.LUNCH);
         assertThat(response.totalPrice()).isEqualByComparingTo("250.00");
     }
 
     @Test
     void shouldKeepIdWhenMappingOverExisting() {
-        Meal existing = MealMapper.toDomain(mealRequest(null, MealType.LUNCH), null);
+        Meal existing = MealMapper.toDomain(mealRequest(null, MealType.LUNCH), restaurant(project()));
 
-        Meal updated = MealMapper.toDomain(existing, mealRequest(null, MealType.DINNER), null);
+        Meal updated = MealMapper.toDomain(existing, mealRequest(null, MealType.DINNER), existing.getRestaurant());
 
         assertThat(updated.getId()).isEqualTo(existing.getId());
         assertThat(updated.getMealType()).isEqualTo(MealType.DINNER);

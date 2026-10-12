@@ -2,54 +2,46 @@ package com.longobuccodev.app_adm_obras.infra.adapters.mapper;
 
 import com.longobuccodev.app_adm_obras.core.domain.Meal;
 import com.longobuccodev.app_adm_obras.infra.entities.MealEntity;
+import com.longobuccodev.app_adm_obras.infra.entities.RestaurantEntity;
 
 public final class MealEntityMapper {
 
     private MealEntityMapper() {
     }
 
+    /** A obra da refeicao e a do restaurante, lida rasa. */
     public static Meal toDomain(MealEntity entity) {
-        return toDomain(entity, true);
-    }
-
-    public static Meal toDomain(MealEntity entity, boolean withProject) {
         if (entity == null) {
             return null;
         }
-        return new Meal(entity.getId(), entity.getRestaurantName(), entity.getPrice(), entity.getIsBilled(),
-                AddressEntityMapper.toDomain(entity.getAddress()),
-                withProject ? ProjectEntityMapper.toDomainShallow(entity.getProject()) : null,
-                entity.getMealType(), entity.getQuantity(), entity.getDate());
+        return AuditMapping.restore(new Meal(entity.getId(), RestaurantEntityMapper.toDomain(entity.getRestaurant()),
+                entity.getPrice(), entity.getIsBilled(), entity.getMealType(), entity.getQuantity(),
+                entity.getDate()), entity);
     }
 
-    public static MealEntity toEntity(Meal domain) {
+    /** @param restaurant referencia gerenciada ao restaurante; a obra da refeicao e copiada dele */
+    public static MealEntity toEntity(Meal domain, RestaurantEntity restaurant) {
         if (domain == null) {
             return null;
         }
         MealEntity entity = MealEntity.create();
         entity.setId(domain.getId());
-        entity.setAddress(AddressEntityMapper.toEntity(domain.getAddress()));
-        apply(domain, entity);
+        apply(domain, entity, restaurant);
         return entity;
     }
 
-    public static void apply(Meal domain, MealEntity entity) {
+    public static void apply(Meal domain, MealEntity entity, RestaurantEntity restaurant) {
         if (domain == null || entity == null) {
             return;
         }
-        entity.setRestaurantName(domain.getRestaurantName());
+        entity.setRestaurant(restaurant);
+        entity.setProject(restaurant == null ? null : restaurant.getProject());
         entity.setPrice(domain.getPrice());
         entity.setIsBilled(domain.getBilled());
         entity.setMealType(domain.getMealType());
         entity.setQuantity(domain.getQuantity());
         entity.setDate(domain.getDate());
         entity.setTotalPrice(domain.getTotalPrice());
-        if (domain.getAddress() == null) {
-            entity.setAddress(null);
-        } else if (entity.getAddress() == null) {
-            entity.setAddress(AddressEntityMapper.toEntity(domain.getAddress()));
-        } else {
-            AddressEntityMapper.apply(domain.getAddress(), entity.getAddress());
-        }
+        AuditMapping.copy(domain, entity);
     }
 }

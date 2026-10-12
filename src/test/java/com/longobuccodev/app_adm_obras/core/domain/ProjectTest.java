@@ -23,8 +23,12 @@ class ProjectTest {
     }
 
     private static Meal newMeal(MealType mealType, String price, int quantity) {
-        return new Meal(null, "Restaurante do Ze", new BigDecimal(price), false, null, null,
-                mealType, quantity, LocalDate.now());
+        Project owner = new Project(null, "OS-9999", null, newCostCenter(), LocalDate.of(2026, 1, 10), null,
+                new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444",
+                        new Address(null, "Rua A", "1", "Campinas", "SP", "Brasil", "Centro", "13010000")),
+                false);
+        return new Meal(null, new Restaurant(null, "Restaurante do Ze", null, null, owner), new BigDecimal(price),
+                false, mealType, quantity, LocalDate.now());
     }
 
     private static Project newProject() {

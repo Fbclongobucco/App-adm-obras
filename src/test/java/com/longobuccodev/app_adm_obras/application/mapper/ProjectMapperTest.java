@@ -82,7 +82,7 @@ class ProjectMapperTest {
                 .satisfies(summary -> assertThat(summary.hostName()).isEqualTo("Maria Souza"));
         assertThat(response.employees()).singleElement()
                 .satisfies(summary -> assertThat(summary.id()).isEqualTo(employee.getId()));
-        assertThat(response.lunch().restaurantName()).isEqualTo("Restaurante do Ze");
+        assertThat(response.lunch().restaurant().name()).isEqualTo("Restaurante do Ze");
         assertThat(response.dinner()).isNull();
         assertThat(response.totalPrice()).isEqualByComparingTo("1250.00");
     }

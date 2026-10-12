@@ -12,6 +12,8 @@ public interface AccommodationRepository {
     List<Accommodation> findAll();
     Page<Accommodation> findAll(PageRequest request);
     List<Accommodation> findByProjectId(UUID projectId);
+
+    boolean existsByEmployeeId(UUID employeeId);
     void delete(Accommodation accommodation);
     void deleteById(UUID id);
     void update(UUID id ,Accommodation accommodation);

@@ -23,6 +23,7 @@ public final class CostCenterMapper {
         if (costCenter == null) {
             return null;
         }
-        return new CostCenterResponseDTO(costCenter.getId(), costCenter.getName(), costCenter.getCnpj());
+        return new CostCenterResponseDTO(costCenter.getId(), costCenter.getName(), costCenter.getCnpj(),
+                costCenter.getCreatedAt(), costCenter.getUpdatedAt());
     }
 }

@@ -4,6 +4,7 @@ import com.longobuccodev.app_adm_obras.application.dto.address.AddressResponseDT
 import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterResponseDTO;
 import com.longobuccodev.app_adm_obras.core.domain.Employee.Role;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -16,6 +17,8 @@ public record EmployeeSummaryDTO(
         AddressResponseDTO address,
         LocalDate birthDate,
         CostCenterResponseDTO costCenter,
-        Role role
+        Role role,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

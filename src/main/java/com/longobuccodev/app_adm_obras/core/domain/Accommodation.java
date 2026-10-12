@@ -9,7 +9,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
-public class Accommodation {
+public class Accommodation extends Audited {
 
     private static final int MIN_HOST_NAME_LENGTH = 3;
     private static final int MAX_HOST_NAME_LENGTH = 100;
