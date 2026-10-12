@@ -7,5 +7,6 @@ services:
     env_file:
       - .env
     ports:
-      - '8080:8080'
+      # Porta do servidor (APP_PORT no .env, padrao 8080) -> 8080 dentro do conteiner
+      - '${APP_PORT:-8080}:8080'
     restart: unless-stopped

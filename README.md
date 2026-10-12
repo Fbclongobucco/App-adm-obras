@@ -8,7 +8,7 @@ Application for construction site administration.
 2. Ensure an external PostgreSQL instance is reachable (the project does not provision Postgres via docker-compose).
 3. Start the application:
    - With Maven: `./mvnw spring-boot:run -Dspring-boot.run.profiles=local`
-   - With Docker Compose (application only): `docker compose up --build`
+   - With Docker Compose (application only): `docker compose up --build`. The host port comes from `APP_PORT` in `.env` (default `8080`), e.g. `APP_PORT=8081` publishes the API on `http://localhost:8081`.
 
 ## Environment variables
 
