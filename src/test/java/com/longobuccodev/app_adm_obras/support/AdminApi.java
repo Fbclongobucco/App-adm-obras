@@ -42,6 +42,10 @@ public class AdminApi {
         return exchange(HttpMethod.POST, path, body);
     }
 
+    public ResponseEntity<List> postList(String path, Object body) {
+        return rest.exchange(path, HttpMethod.POST, new HttpEntity<>(body, headers()), List.class);
+    }
+
     public ResponseEntity<Map> put(String path, Object body) {
         return exchange(HttpMethod.PUT, path, body);
     }
@@ -117,10 +121,10 @@ public class AdminApi {
         body.put("hostPhone", "1933335555");
         body.put("address", address());
         body.put("capacity", 4);
-        body.put("days", 10);
         body.put("isContract", true);
         body.put("projectId", projectId);
-        body.put("totalPrice", 1500);
+        body.put("startDate", "2026-10-12");
+        body.put("monthlyPrice", 1500);
         return body;
     }
 
@@ -136,11 +140,13 @@ public class AdminApi {
     public Map<String, Object> mealBody(String restaurantId, String mealType) {
         Map<String, Object> body = new HashMap<>();
         body.put("restaurantId", restaurantId);
-        body.put("price", 25);
-        body.put("isBilled", false);
         body.put("mealType", mealType);
-        body.put("quantity", 10);
-        body.put("date", "2026-01-15");
+        body.put("isBilled", false);
+        // O tipo decide quais campos valem; os da refeicao nao servida sao ignorados
+        body.put("lunchQuantity", 10);
+        body.put("lunchPrice", 25);
+        body.put("dinnerQuantity", 8);
+        body.put("dinnerPrice", 22);
         return body;
     }
 

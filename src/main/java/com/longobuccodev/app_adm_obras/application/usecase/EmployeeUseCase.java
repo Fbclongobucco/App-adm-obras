@@ -1,13 +1,14 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
+import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.employee.EmployeeResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.application.mapper.EmployeeMapper;
 import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
+import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.exception.ConflictException;
 import com.longobuccodev.app_adm_obras.core.repository.AccommodationRepository;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
@@ -59,6 +60,11 @@ public class EmployeeUseCase {
         return PageMapper.toResponse(employeeRepository.findAll(request), EmployeeMapper::toResponse);
     }
 
+    /** Listagem filtrada pelo termo de busca; vazio ou nulo nao filtra. */
+    public PageResponseDTO<EmployeeResponseDTO> findAll(PageRequest request, String query) {
+        return PageMapper.toResponse(employeeRepository.findAll(request, SearchTerm.of(query)), EmployeeMapper::toResponse);
+    }
+
     public List<EmployeeResponseDTO> findByCostCenterId(UUID costCenterId) {
         CostCenter costCenter = EntityLookup.require(costCenterId, costCenterRepository::findById,
                 ResourceNotFoundException::costCenter);
@@ -88,8 +94,11 @@ public class EmployeeUseCase {
     private void requireUniqueDocuments(Employee employee) {
         Conflicts.requireUnique(employeeRepository.findByCpf(employee.getCpf()), Employee::getId, employee.getId(),
                 () -> ConflictException.duplicate("employee", "cpf", employee.getCpf()));
-        Conflicts.requireUnique(employeeRepository.findByEmail(employee.getEmail()), Employee::getId,
-                employee.getId(), () -> ConflictException.duplicate("employee", "email", employee.getEmail()));
+        // E-mail e opcional: so o informado precisa ser unico
+        if (employee.getEmail() != null) {
+            Conflicts.requireUnique(employeeRepository.findByEmail(employee.getEmail()), Employee::getId,
+                    employee.getId(), () -> ConflictException.duplicate("employee", "email", employee.getEmail()));
+        }
     }
 
     private Employee findEmployee(UUID id) {

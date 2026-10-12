@@ -1,6 +1,7 @@
 package com.longobuccodev.app_adm_obras.infra.entities;
 
 import com.longobuccodev.app_adm_obras.core.domain.Meal.MealType;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,12 +10,15 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -28,13 +32,10 @@ public class MealEntity extends AuditedEntity {
     @JoinColumn(name = "restaurant_id", nullable = false)
     private RestaurantEntity restaurant;
 
-    @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal price;
-
     @Column(name = "is_billed", nullable = false)
     private Boolean isBilled;
 
-    // Copia da obra do restaurante, para a unicidade (project_id, meal_type) valer no banco
+    // Copia da obra do restaurante, para a unicidade de cobertura (uk_meal_project_lunch/dinner) valer no banco
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "project_id", nullable = false)
     private ProjectEntity project;
@@ -45,14 +46,30 @@ public class MealEntity extends AuditedEntity {
     @Column(name = "meal_type", nullable = false)
     private MealType mealType;
 
-    @Column(nullable = false)
-    private Integer quantity;
+    @Column(name = "lunch_quantity")
+    private Integer lunchQuantity;
 
-    @Column(nullable = false)
-    private LocalDate date;
+    @Column(name = "lunch_price", precision = 19, scale = 2)
+    private BigDecimal lunchPrice;
 
-    @Column(name = "total_price", nullable = false, precision = 19, scale = 2)
-    private BigDecimal totalPrice;
+    @Column(name = "dinner_quantity")
+    private Integer dinnerQuantity;
+
+    @Column(name = "dinner_price", precision = 19, scale = 2)
+    private BigDecimal dinnerPrice;
+
+    // Derivadas do tipo: TRUE quando a refeicao serve almoco/jantar, NULL quando nao serve.
+    // UNIQUE (project_id, lunch_slot) e (project_id, dinner_slot) ignoram NULL no PostgreSQL e no H2.
+    @Column(name = "lunch_slot")
+    private Boolean lunchSlot;
+
+    @Column(name = "dinner_slot")
+    private Boolean dinnerSlot;
+
+    // Ajustes por data: parte da refeicao, gravados e apagados com ela. Lidos em lote nas listagens.
+    @OneToMany(mappedBy = "meal", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 100)
+    private List<MealAdjustmentEntity> adjustments = new ArrayList<>();
 
     public static MealEntity create() {
         return new MealEntity();
@@ -75,14 +92,6 @@ public class MealEntity extends AuditedEntity {
 
     public void setRestaurant(RestaurantEntity restaurant) {
         this.restaurant = restaurant;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
     }
 
     public Boolean getIsBilled() {
@@ -110,27 +119,55 @@ public class MealEntity extends AuditedEntity {
         this.mealType = mealType;
     }
 
-    public Integer getQuantity() {
-        return quantity;
+    public Integer getLunchQuantity() {
+        return lunchQuantity;
     }
 
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
+    public void setLunchQuantity(Integer lunchQuantity) {
+        this.lunchQuantity = lunchQuantity;
     }
 
-    public LocalDate getDate() {
-        return date;
+    public BigDecimal getLunchPrice() {
+        return lunchPrice;
     }
 
-    public void setDate(LocalDate date) {
-        this.date = date;
+    public void setLunchPrice(BigDecimal lunchPrice) {
+        this.lunchPrice = lunchPrice;
     }
 
-    public BigDecimal getTotalPrice() {
-        return totalPrice;
+    public Integer getDinnerQuantity() {
+        return dinnerQuantity;
     }
 
-    public void setTotalPrice(BigDecimal totalPrice) {
-        this.totalPrice = totalPrice;
+    public void setDinnerQuantity(Integer dinnerQuantity) {
+        this.dinnerQuantity = dinnerQuantity;
+    }
+
+    public BigDecimal getDinnerPrice() {
+        return dinnerPrice;
+    }
+
+    public void setDinnerPrice(BigDecimal dinnerPrice) {
+        this.dinnerPrice = dinnerPrice;
+    }
+
+    public Boolean getLunchSlot() {
+        return lunchSlot;
+    }
+
+    public void setLunchSlot(Boolean lunchSlot) {
+        this.lunchSlot = lunchSlot;
+    }
+
+    public Boolean getDinnerSlot() {
+        return dinnerSlot;
+    }
+
+    public void setDinnerSlot(Boolean dinnerSlot) {
+        this.dinnerSlot = dinnerSlot;
+    }
+
+    public List<MealAdjustmentEntity> getAdjustments() {
+        return adjustments;
     }
 }

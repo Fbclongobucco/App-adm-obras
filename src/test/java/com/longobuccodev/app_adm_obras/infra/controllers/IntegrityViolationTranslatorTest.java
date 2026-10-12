@@ -85,16 +85,23 @@ class IntegrityViolationTranslatorTest {
     }
 
     @Test
-    @DisplayName("duas refeicoes do mesmo tipo na mesma obra e exclusao de restaurante com refeicao")
+    @DisplayName("duas coberturas de almoco ou de jantar na mesma obra e exclusao de restaurante com refeicao")
     void mealAndRestaurantViolations() {
         AdminApi api = new AdminApi(rest);
         String projectId = api.createProject();
         String restaurantId = api.create("/api/restaurants", api.restaurantBody(projectId));
-        api.create("/api/meals", api.mealBody(restaurantId, "LUNCH"));
+        String mealId = api.create("/api/meals", api.mealBody(restaurantId, "LUNCH_AND_DINNER"));
+        String adjustment = "insert into meal_adjustment (id, meal_id, date, type, created_at, updated_at) values ("
+                + "random_uuid(), '" + mealId + "', date '2026-01-12', 'NO_SERVICE', " + NOW + ")";
+        jdbc.update(adjustment);
+        assertCode(adjustment, "meal.adjustment.duplicate.date");
 
-        assertCode("insert into meal (id, meal_type, date, price, quantity, total_price, is_billed, restaurant_id, "
-                + "project_id, created_at, updated_at) values (random_uuid(), 'LUNCH', current_date, 10, 1, 10, false, '"
-                + restaurantId + "', '" + projectId + "', " + NOW + ")", "meal.duplicate.type");
+        assertCode("insert into meal (id, meal_type, lunch_quantity, lunch_price, lunch_slot, is_billed, "
+                + "restaurant_id, project_id, created_at, updated_at) values (random_uuid(), 'LUNCH', 1, 10, true, "
+                + "false, '" + restaurantId + "', '" + projectId + "', " + NOW + ")", "meal.duplicate.type");
+        assertCode("insert into meal (id, meal_type, dinner_quantity, dinner_price, dinner_slot, is_billed, "
+                + "restaurant_id, project_id, created_at, updated_at) values (random_uuid(), 'DINNER', 1, 10, true, "
+                + "false, '" + restaurantId + "', '" + projectId + "', " + NOW + ")", "meal.duplicate.type");
         assertCode("delete from restaurant where id = '" + restaurantId + "'", "restaurant.in_use");
         assertCode("delete from project where id = '" + projectId + "'", "project.in_use");
     }

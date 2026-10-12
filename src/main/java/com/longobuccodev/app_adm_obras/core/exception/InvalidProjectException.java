@@ -1,7 +1,5 @@
 package com.longobuccodev.app_adm_obras.core.exception;
 
-import java.util.UUID;
-
 import java.time.LocalDate;
 
 public class InvalidProjectException extends CoreDomainException {
@@ -51,29 +49,10 @@ public class InvalidProjectException extends CoreDomainException {
         return new InvalidProjectException("project.invalid.meal", "Project meal must not be null");
     }
 
-    public static InvalidProjectException mealFromAnotherProject(UUID mealId) {
-        return new InvalidProjectException("project.invalid.meal",
-                "Meal does not belong to this project through its restaurant: " + mealId);
-    }
-
     public static InvalidProjectException duplicatedMealType(String mealType) {
         return new InvalidProjectException(
                 "project.duplicated_meal_type",
-                "Project already has a " + mealType + " meal registered"
-        );
-    }
-
-    public static InvalidProjectException missingMealType(String mealType) {
-        return new InvalidProjectException(
-                "project.missing_meal_type",
-                "Project has no " + mealType + " meal registered"
-        );
-    }
-
-    public static InvalidProjectException mealTypeMismatch(String expectedType, String actualType) {
-        return new InvalidProjectException(
-                "project.invalid.meal_type",
-                "Meal type " + actualType + " cannot be assigned to the " + expectedType + " property"
+                "Project already has a meal covering " + mealType
         );
     }
 

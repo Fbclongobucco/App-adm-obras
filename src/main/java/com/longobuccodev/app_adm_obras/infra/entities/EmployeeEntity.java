@@ -27,7 +27,7 @@ public class EmployeeEntity extends AuditedEntity {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String email;
 
     @Column(nullable = false, length = 11, unique = true)

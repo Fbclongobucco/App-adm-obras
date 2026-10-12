@@ -157,9 +157,107 @@ Documentation is disabled by default (`springdoc.api-docs.enabled` / `springdoc.
 Every restaurant belongs to exactly one project (`/api/restaurants`, `/api/restaurants/by-project/{projectId}`). A meal references a restaurant and inherits its project.
 
 - **BREAKING:** `POST/PUT /api/meals` no longer accept `restaurantName`, `address` or `projectId`. Send `restaurantId` instead. Responses carry `restaurant` (summary) instead of `restaurantName`/`address`.
-- A project keeps at most one meal of each type; a second one responds `409 meal.duplicate.type`.
 - A restaurant with meals cannot move to another project or be deleted (`409 restaurant.in_use`).
-- `PUT /api/projects/{id}`: `employeeIds` and `accommodationIds` are full replacements (omitted means removed). `lunchId`/`dinnerId` only confirm a meal that already belongs to the project; they never move meals, and omitting them keeps the current meals.
+- `PUT /api/projects/{id}`: `employeeIds` and `accommodationIds` are full replacements (omitted means removed). Meals are not part of the request: they follow their restaurant and are kept.
+
+### Meal plan per project (BREAKING, migration `V4`)
+
+A meal is the food contracted for a project through a restaurant, without a date.
+
+```
+MealType = LUNCH | DINNER | LUNCH_AND_DINNER
+POST/PUT /api/meals
+{ restaurantId, mealType, isBilled,
+  lunchQuantity, lunchPrice,      // required when the type serves lunch; ignored otherwise
+  dinnerQuantity, dinnerPrice }   // required when the type serves dinner; ignored otherwise
+MealSummary
+{ id, restaurant, mealType, isBilled,
+  lunchQuantity, lunchPrice, dinnerQuantity, dinnerPrice,   // null when not served
+  dailyPrice, workingDays, totalPrice,                     // workingDays/totalPrice null without project endDate
+  createdAt, updatedAt }
+Meal (GET /api/meals, /api/meals/{id}) = MealSummary + { project }
+Project: meals: MealSummary[]  (no lunch/dinner)
+ProjectRequest: no lunchId/dinnerId
+```
+
+- **BREAKING:** `date`, `quantity` and `price` were removed from meals; `lunch`/`dinner` from the project response; `lunchId`/`dinnerId` from the project request.
+- Quantity: integer 1 to 10000; price greater than zero, per served meal. Errors (`400`): `meal.invalid.restaurant`, `meal.invalid.type`, `meal.invalid.lunch_quantity`, `meal.invalid.lunch_price`, `meal.invalid.dinner_quantity`, `meal.invalid.dinner_price`. The codes `meal.invalid.price`, `meal.invalid.quantity`, `meal.invalid.date` and `meal.invalid.date.future` no longer exist.
+- `dailyPrice` = sum of quantity × price of each served meal (since `V5` it also includes delivery and soda, see below). `workingDays` = Monday to Friday from the project `startDate` to `endDate`, inclusive, holidays not deducted. `totalPrice` = `dailyPrice × workingDays`. Values are computed on every read from the current project dates; nothing is stored.
+- A project has at most one meal serving lunch and one serving dinner; `LUNCH_AND_DINNER` takes both. Overlap responds `409 meal.duplicate.type` (also enforced by the database: `uk_meal_project_lunch`, `uk_meal_project_dinner`).
+- The project `totalPrice` is the sum of the meals' `totalPrice` (null counts as zero) and the accommodations' totals.
+
+Migration `V4` moves `LUNCH` rows to `lunch_quantity`/`lunch_price` and `DINNER` rows to `dinner_quantity`/`dinner_price`, and drops `date`, `quantity`, `price` and `total_price`. There is no automatic rollback: back up the database before deploying.
+
+### Delivery fee, soda and billing periods (migration `V5`)
+
+`dailyPrice` now includes delivery and soda. With no delivery fee and no soda price, values are unchanged.
+
+```
+POST/PUT /api/restaurants   + deliveryFee (number | null)       // per delivery; null = no fee
+RestaurantSummary           + deliveryFee
+Restaurant (POST/PUT, GET /api/restaurants, /{id}, /by-project/{projectId})
+                            + meals: MealSummary[]
+POST/PUT /api/meals         + sodaPrice (number | null)         // moved to the restaurant in V6, see below
+MealSummary                 + sodaPrice, deliveriesPerDay,
+                              mealsDailyPrice, deliveryDailyPrice, sodaDailyPrice,
+                              dailyPrice (now includes delivery and soda),
+                              projections: [{ period: "DAY"|"WEEK"|"FORTNIGHT"|"MONTH",
+                                              workingDays, lunchMeals, dinnerMeals,
+                                              deliveries, sodas, price }]   // in this order
+```
+
+- Each served meal is one delivery per day: `deliveriesPerDay` = 1 for `LUNCH`/`DINNER`, 2 for `LUNCH_AND_DINNER`.
+- `mealsDailyPrice` = sum of quantity × price (the former `dailyPrice`); `deliveryDailyPrice` = `deliveriesPerDay × restaurant.deliveryFee` (0 without fee); `sodaDailyPrice` = `deliveriesPerDay × sodaPrice` (0 without soda); `dailyPrice` = sum of the three. `totalPrice` = `dailyPrice × workingDays`, so meal and project totals include delivery and soda.
+- `projections` use fixed working days: `DAY` = 1, `WEEK` = 5, `FORTNIGHT` = 10, `MONTH` = 22 (not the calendar). `lunchMeals`/`dinnerMeals` = daily quantity × days (0 when not served), `deliveries` = `deliveriesPerDay × days`, `sodas` = `deliveries` when there is a soda price (else 0), `price` = `dailyPrice × days`.
+- Example: lunch 10 × 25.00 + dinner 8 × 22.00, fee 8.00, soda 5.00 → `mealsDailyPrice` 426.00, `deliveryDailyPrice` 16.00, `sodaDailyPrice` 10.00, `dailyPrice` 452.00; `WEEK` 2260.00, `FORTNIGHT` 4520.00, `MONTH` 9944.00.
+- Errors (`400`): `restaurant.invalid.delivery_fee`, `meal.invalid.soda_price` (zero or negative; replaced by `restaurant.invalid.soda_price` in `V6`). Everything is computed on read; nothing is stored. Migration `V5` adds nullable `restaurant.delivery_fee` and `meal.soda_price`.
+
+### Soda moved to the restaurant (BREAKING on meal write, migration `V6`)
+
+The soda price is a condition of the restaurant, like the delivery fee: one unit price, 1 soda per delivery, for every meal of the restaurant.
+
+```
+POST/PUT /api/restaurants   + sodaPrice (number | null)   // null = restaurant does not provide soda
+RestaurantSummary           + sodaPrice
+Restaurant (response)       + sodaPrice
+POST/PUT /api/meals         - sodaPrice                   // no longer read; ignored if sent
+MealSummary.sodaPrice       = restaurant.sodaPrice        // read only
+```
+
+- `sodaDailyPrice` = `deliveriesPerDay × restaurant.sodaPrice` (0 when the restaurant has no soda); `dailyPrice`, `totalPrice` and `projections` keep their names and formulas and read the restaurant's current price on every read.
+- Errors (`400`): `restaurant.invalid.soda_price` (zero or negative). The code `meal.invalid.soda_price` no longer exists.
+- Migration `V6` adds nullable `restaurant.soda_price`, copies to each restaurant the highest `meal.soda_price` of its meals and drops `meal.soda_price`. A restaurant that had meals with and without soda now provides soda to all of them. Before deploying, list those restaurants on a copy of the database: `select restaurant_id from meal group by restaurant_id having count(soda_price) between 1 and count(*) - 1`. Rollback requires restoring the backup.
+
+### Date adjustments on meals (migration `V7`)
+
+A meal can record exceptions to its working-day schedule, one per date:
+
+- `EXTRA_DAY`: Saturday or Sunday (holidays included) on which the restaurant delivers, with that day's quantities;
+- `NO_SERVICE`: a weekday (typically a holiday) on which the restaurant does not deliver.
+
+```
+GET    /api/meals/{id}/adjustments            -> MealAdjustment[]            // ordered by date
+POST   /api/meals/{id}/adjustments            { date, type, lunchQuantity, dinnerQuantity, note } -> 201
+DELETE /api/meals/{id}/adjustments/{adjId}    -> 204                          // ADMIN only, like other writes
+
+MealAdjustment { id, date, weekday, type, lunchQuantity, dinnerQuantity, note,
+                 deliveries, sodas, price, inPeriod }
+MealSummary + { serviceDays, noServiceDays, extraDays, extraDaysPrice }       // totalPrice includes adjustments
+Meal (GET /api/meals, /{id}, /by-project/{projectId}, POST/PUT) + { adjustments }   // ordered by date
+```
+
+- Rules, checked in this order: date within the project period, `>= startDate` and `<= endDate` when there is one (`400 meal.adjustment.invalid.date`); one adjustment per date per meal (`409 meal.adjustment.duplicate.date`); `EXTRA_DAY` only on Saturday or Sunday (`400 meal.adjustment.invalid.extra_day`); `NO_SERVICE` only Monday to Friday (`400 meal.adjustment.invalid.no_service`); `EXTRA_DAY` requires the quantity of each meal served by the type (integer 0 to 10000, at least one greater than zero; the quantity of a meal not served is ignored), and `NO_SERVICE` takes no quantities (`400 meal.adjustment.invalid.quantity`). Missing `type`: `400 meal.adjustment.invalid.type`; `note` longer than 100 characters: `400 meal.adjustment.invalid.note`. Unknown adjustment: `404 meal.adjustment.not_found`.
+- `weekday` is `MONDAY` … `SUNDAY`.
+- Extra day `price` = sum of quantity × price of the meals with quantity > 0 + `deliveries × restaurant.deliveryFee` + `sodas × restaurant.sodaPrice`, where `deliveries` = meals with quantity > 0 (served by the current meal type) and `sodas` = `deliveries` when the restaurant provides soda. `NO_SERVICE` has `deliveries`, `sodas` and `price` 0.
+- `noServiceDays` / `extraDays` count the adjustments of each type inside the current project period; `extraDaysPrice` sums those extra days; `serviceDays` = `workingDays − noServiceDays`; `totalPrice` = `dailyPrice × serviceDays + extraDaysPrice` (`serviceDays` and `totalPrice` stay `null` without project `endDate`). The project `totalPrice` follows.
+- Adjustments that fall outside the period after the project dates change are kept, with `inPeriod: false`, and do not count.
+- `PUT /api/meals/{id}` keeps the adjustments; deleting the meal deletes them.
+- Example: project 2026-10-05 to 2026-10-16, `LUNCH_AND_DINNER` lunch 10 × 25.00 and dinner 8 × 22.00, fee 8.00, soda 5.00 (`dailyPrice` 452.00), `NO_SERVICE` on 2026-10-12 and `EXTRA_DAY` on 2026-10-10 with 6 lunches and 0 dinners (163.00: 1 delivery, 1 soda) → `workingDays` 10, `noServiceDays` 1, `serviceDays` 9, `extraDaysPrice` 163.00, `totalPrice` 4231.00.
+- Migration `V7` creates `meal_adjustment` (`fk_meal_adjustment_meal ... on delete cascade`, `uk_meal_adjustment_meal_date unique (meal_id, date)`). Existing data is unchanged.
+
+### Optional email (clients and employees)
+
+`email` of clients and employees is optional: `null` or blank is stored as `null`. When informed it must be valid (`400 client.invalid.email` / `employee.invalid.email`) and unique (`409 client.duplicate.email` / `employee.duplicate.email`); records without email never conflict. User email (login) stays required.
 
 Migration `V3` converts existing meals: one restaurant per (project, restaurant name). It fails on purpose if a meal has no project; check with `select count(*) from meal where project_id is null` before migrating a database with data.
 
@@ -167,10 +265,46 @@ Migration `V3` converts existing meals: one restaurant per (project, restaurant 
 
 Business resources return `createdAt` and `updatedAt` (UTC, set by the server; values sent by clients are ignored). `GET /api/projects` accepts `sort=<field>[,asc|desc]` with `updatedAt`, `createdAt`, `os` or `startDate`, e.g. `sort=updatedAt,desc&size=10`. Other values respond `400 page.invalid.sort`.
 
+### Weekly meal closing
+
+Meals are settled with the restaurant weekly, Monday to Sunday.
+
+- `GET /api/meals/{id}/weekly-closing?week=YYYY-MM-DD` and `GET /api/restaurants/{id}/weekly-closing?week=YYYY-MM-DD` (the restaurant sums its meals day by day). `week` is any date of the week; missing or outside the list falls back to the current week, the first one (before the start) or the last one (after the end), returned in `selected`.
+- `weeks`: Monday-to-Sunday weeks with at least one day in the project period, `start`/`end` cut to the period, `partial` when cut, `current` when it contains today (UTC). Without an end date, the list goes up to the current week.
+- `days`: the 7 days with `status` (`SERVICE`, `NO_SERVICE`, `EXTRA_DAY`, `OFF` for a weekend without adjustment, `OUT_OF_PERIOD`), `lunchMeals`, `dinnerMeals`, `deliveries`, `sodas`, `price` and `adjustmentIds`; on a restaurant, `partialNoService` marks a day where only some meals have no service. `totals.serviceDays` counts `SERVICE` and `EXTRA_DAY`. The weeks add up to the meal `totalPrice`.
+- `POST /api/restaurants/{id}/adjustments` `{ date, type, note, quantities: [{ mealId, lunchQuantity, dinnerQuantity }] }` applies a date adjustment to every meal of the restaurant (`NO_SERVICE`: all meals; `EXTRA_DAY`: only meals with a quantity above zero, none → `400 meal.adjustment.invalid.quantity`). Same rules and codes as the meal adjustment; any error writes nothing. `201` with the created adjustments.
+- `DELETE /api/restaurants/{id}/adjustments/{date}` removes that date from every meal of the restaurant; `404 meal.adjustment.not_found` when none has it. Writes are `ADMIN` only.
+
+### Accommodation lease
+
+Accommodations are leased by month.
+
+- Requests take `startDate` and `monthlyPrice` (> 0) instead of `days` and `totalPrice`. The first period runs from the start date to the day before the same day next month (or the last day of next month when that day does not exist: 2027-01-31 → 2027-02-28).
+- Responses bring `startDate`, `monthlyPrice`, `endDate` (end of the last period), `totalPrice` (sum of the periods) and `periods` (`id`, `startDate`, `endDate`, `days`, `price`); the detail also brings `nextRenewal`, the suggested next period.
+- `POST /api/accommodations/{id}/renewals` `{ endDate?, price? }` adds a period starting the day after the current end; missing fields use the suggestion. `400 accommodation.invalid.renewal_end` / `accommodation.invalid.renewal_price`. `201` with the accommodation.
+- `DELETE /api/accommodations/{id}/renewals/last` undoes the last renewal (`204`); the first period cannot be removed (`409 accommodation.lease.first_period`).
+- Without renewals, `PUT` with a new `startDate` or `monthlyPrice` rebuilds the first period; with renewals, changing `startDate` responds `409 accommodation.lease.renewed` and `monthlyPrice` only changes the suggestion.
+- Migration `V8` converts existing rows (test data): start = project start (or creation date), monthly price = old total (minimum 0.01), one first period; `days` and `total_price` are dropped. Back up before applying it to a database with real data.
+
+### Search in listings
+
+The paginated listings accept an optional `q`, e.g. `GET /api/employees?q=jose antonio&page=0&size=20`. Matching ignores case and accents (`TRANSLATE`, portable between H2 and PostgreSQL) and looks for the term anywhere in the searchable fields; CPF and CNPJ are compared by digits only, so `q=529.982` finds `52998224725`. Without `q`, or with a blank `q`, the result is unchanged; `totalElements` and the pages reflect the filtered result. Terms over 100 characters respond `400 page.invalid.query`; `%` and `_` are literal.
+
+| Listing | Searchable fields |
+|---|---|
+| `/api/projects` | `os`, `description`, client name |
+| `/api/clients` | `name`, `email`, address city |
+| `/api/employees` | `name`, `cpf` (digits), `email` |
+| `/api/cost-centers` | `name`, `cnpj` (digits) |
+| `/api/restaurants` | `name`, project `os`, address city |
+| `/api/meals` | restaurant name, project `os` |
+| `/api/accommodations` | `hostName`, address city, project `os` |
+| `/api/users` | `name`, `email` |
+
 ### Conflicts (409)
 
 Duplicates and deletions blocked by dependents respond `409` with a specific `errorCode`, and nothing is written:
-- `project.duplicate.os`, `client.duplicate.email`, `employee.duplicate.email`, `employee.duplicate.cpf`, `user.duplicate.email`, `meal.duplicate.type`;
+- `project.duplicate.os`, `client.duplicate.email`, `employee.duplicate.email`, `employee.duplicate.cpf`, `user.duplicate.email`, `meal.duplicate.type`, `meal.adjustment.duplicate.date`;
 - `cost_center.in_use`, `client.in_use`, `project.in_use`, `employee.in_use`, `restaurant.in_use` (the message names the blocking link);
 - `data.integrity_violation` for any other database constraint.
 

@@ -6,12 +6,11 @@ import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
-import com.longobuccodev.app_adm_obras.core.domain.Meal;
 import com.longobuccodev.app_adm_obras.core.domain.Meal.MealType;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
-import com.longobuccodev.app_adm_obras.core.exception.InvalidProjectException;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.Set;
 
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.accommodation;
@@ -21,7 +20,6 @@ import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.em
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.meal;
 import static com.longobuccodev.app_adm_obras.application.ApplicationFixtures.projectRequest;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ProjectMapperTest {
 
@@ -31,37 +29,26 @@ class ProjectMapperTest {
         Client client = client();
         Accommodation accommodation = accommodation();
         Employee employee = employee();
-        Meal lunch = meal(MealType.LUNCH);
-        Meal dinner = meal(MealType.DINNER);
 
-        Project project = ProjectMapper.toDomain(projectRequest(null, null, null, null, null, null), costCenter,
-                client, Set.of(accommodation), Set.of(employee), lunch, dinner);
+        Project project = ProjectMapper.toDomain(projectRequest(null, null, null, null), costCenter,
+                client, Set.of(accommodation), Set.of(employee));
 
         assertThat(project.getOs()).isEqualTo("OS-1234");
         assertThat(project.getCostCenter()).isSameAs(costCenter);
         assertThat(project.getClient()).isSameAs(client);
         assertThat(project.getAccommodations()).containsExactly(accommodation);
         assertThat(project.getEmployees()).containsExactly(employee);
-        assertThat(project.getLunch()).isSameAs(lunch);
-        assertThat(project.getDinner()).isSameAs(dinner);
-        assertThat(project.getTotalPrice()).isEqualByComparingTo("1500.00");
-    }
-
-    @Test
-    void shouldRejectMealOnWrongSlot() {
-        assertThatThrownBy(() -> ProjectMapper.toDomain(projectRequest(null, null, null, null, null, null),
-                costCenter(), client(), null, null, meal(MealType.DINNER), null))
-                .isInstanceOf(InvalidProjectException.class)
-                .extracting("errorCode").isEqualTo("project.invalid.meal_type");
+        assertThat(project.getMeals()).isEmpty();
+        assertThat(project.getTotalPrice()).isEqualByComparingTo("1000.00");
     }
 
     @Test
     void shouldKeepIdWhenMappingOverExisting() {
-        Project existing = ProjectMapper.toDomain(projectRequest(null, null, null, null, null, null),
-                costCenter(), client(), null, null, null, null);
+        Project existing = ProjectMapper.toDomain(projectRequest(null, null, null, null),
+                costCenter(), client(), null, null);
 
-        Project updated = ProjectMapper.toDomain(existing, projectRequest(null, null, null, null, null, null),
-                costCenter(), client(), null, null, null, null);
+        Project updated = ProjectMapper.toDomain(existing, projectRequest(null, null, null, null),
+                costCenter(), client(), null, null);
 
         assertThat(updated.getId()).isEqualTo(existing.getId());
     }
@@ -70,8 +57,11 @@ class ProjectMapperTest {
     void shouldMapDomainToResponseWithNestedObjects() {
         Accommodation accommodation = accommodation();
         Employee employee = employee();
-        Project project = ProjectMapper.toDomain(projectRequest(null, null, null, null, null, null), costCenter(),
-                client(), Set.of(accommodation), Set.of(employee), meal(MealType.LUNCH), null);
+        Project project = new Project(null, "OS-1234", null, costCenter(), LocalDate.of(2026, 10, 5),
+                LocalDate.of(2026, 10, 16), client(), false);
+        project.addAccommodation(accommodation);
+        project.addEmployee(employee);
+        project.addMeal(meal(MealType.LUNCH_AND_DINNER, project));
 
         ProjectResponseDTO response = ProjectMapper.toResponse(project);
 
@@ -82,15 +72,21 @@ class ProjectMapperTest {
                 .satisfies(summary -> assertThat(summary.hostName()).isEqualTo("Maria Souza"));
         assertThat(response.employees()).singleElement()
                 .satisfies(summary -> assertThat(summary.id()).isEqualTo(employee.getId()));
-        assertThat(response.lunch().restaurant().name()).isEqualTo("Restaurante do Ze");
-        assertThat(response.dinner()).isNull();
-        assertThat(response.totalPrice()).isEqualByComparingTo("1250.00");
+        assertThat(response.meals()).singleElement().satisfies(meal -> {
+            assertThat(meal.restaurant().name()).isEqualTo("Restaurante do Ze");
+            assertThat(meal.mealType()).isEqualTo(MealType.LUNCH_AND_DINNER);
+            assertThat(meal.dailyPrice()).isEqualByComparingTo("426.00");
+            assertThat(meal.workingDays()).isEqualTo(10);
+            assertThat(meal.totalPrice()).isEqualByComparingTo("4260.00");
+        });
+        // 4260.00 das refeicoes + 1000.00 da hospedagem
+        assertThat(response.totalPrice()).isEqualByComparingTo("5260.00");
     }
 
     @Test
     void shouldMapSummaryWithoutCollections() {
         ProjectSummaryDTO summary = ProjectMapper.toSummary(ProjectMapper.toDomain(
-                projectRequest(null, null, null, null, null, null), costCenter(), client(), null, null, null, null));
+                projectRequest(null, null, null, null), costCenter(), client(), null, null));
 
         assertThat(summary.os()).isEqualTo("OS-1234");
         assertThat(summary.client().name()).isEqualTo("Construtora Alfa");

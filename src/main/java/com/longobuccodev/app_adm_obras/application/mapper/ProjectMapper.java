@@ -7,7 +7,6 @@ import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
-import com.longobuccodev.app_adm_obras.core.domain.Meal;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
 
 import java.util.LinkedHashSet;
@@ -21,15 +20,13 @@ public final class ProjectMapper {
     }
 
     public static Project toDomain(ProjectRequestDTO dto, CostCenter costCenter, Client client,
-                                   Set<Accommodation> accommodations, Set<Employee> employees,
-                                   Meal lunch, Meal dinner) {
-        return build(null, dto, costCenter, client, accommodations, employees, lunch, dinner);
+                                   Set<Accommodation> accommodations, Set<Employee> employees) {
+        return build(null, dto, costCenter, client, accommodations, employees);
     }
 
     public static Project toDomain(Project existing, ProjectRequestDTO dto, CostCenter costCenter, Client client,
-                                   Set<Accommodation> accommodations, Set<Employee> employees,
-                                   Meal lunch, Meal dinner) {
-        return build(existing.getId(), dto, costCenter, client, accommodations, employees, lunch, dinner);
+                                   Set<Accommodation> accommodations, Set<Employee> employees) {
+        return build(existing.getId(), dto, costCenter, client, accommodations, employees);
     }
 
     public static ProjectSummaryDTO toSummary(Project project) {
@@ -66,8 +63,7 @@ public final class ProjectMapper {
                 project.getEmployees().stream()
                         .map(EmployeeMapper::toSummary)
                         .collect(Collectors.toCollection(LinkedHashSet::new)),
-                MealMapper.toSummary(project.getLunch()),
-                MealMapper.toSummary(project.getDinner()),
+                project.getMeals().stream().map(MealMapper::toSummary).toList(),
                 project.getRestaurants().stream().map(RestaurantMapper::toSummary).toList(),
                 project.getTotalPrice(),
                 project.getIsCompleted(),
@@ -77,8 +73,7 @@ public final class ProjectMapper {
     }
 
     private static Project build(UUID id, ProjectRequestDTO dto, CostCenter costCenter, Client client,
-                                 Set<Accommodation> accommodations, Set<Employee> employees,
-                                 Meal lunch, Meal dinner) {
+                                 Set<Accommodation> accommodations, Set<Employee> employees) {
         Project project = new Project(id, dto.os(), dto.description(), costCenter, dto.startDate(),
                 dto.endDate(), client, dto.isCompleted());
         if (accommodations != null) {
@@ -87,8 +82,6 @@ public final class ProjectMapper {
         if (employees != null) {
             employees.forEach(project::addEmployee);
         }
-        project.setLunch(lunch);
-        project.setDinner(dinner);
         return project;
     }
 }

@@ -4,6 +4,7 @@ import com.longobuccodev.app_adm_obras.core.exception.InvalidRestaurantException
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,6 +48,61 @@ class RestaurantTest {
         assertThatThrownBy(() -> new Restaurant(null, "Cantina", "1234", null, project()))
                 .isInstanceOf(InvalidRestaurantException.class)
                 .extracting("errorCode").isEqualTo("restaurant.invalid.phone");
+    }
+
+    @Test
+    @DisplayName("taxa de entrega e opcional; informada, deve ser maior que zero")
+    void shouldAcceptOptionalDeliveryFee() {
+        Restaurant withoutFee = new Restaurant(null, "Cantina", null, null, project());
+        Restaurant withFee = new Restaurant(null, "Cantina", null, null, project(), new BigDecimal("8.00"));
+
+        assertThat(withoutFee.getDeliveryFee()).isNull();
+        assertThat(withFee.getDeliveryFee()).isEqualByComparingTo("8.00");
+
+        withFee.setDeliveryFee(null);
+        assertThat(withFee.getDeliveryFee()).isNull();
+    }
+
+    @Test
+    @DisplayName("taxa de entrega zero ou negativa deve ser rejeitada com restaurant.invalid.delivery_fee")
+    void shouldRejectDeliveryFeeNotGreaterThanZero() {
+        for (BigDecimal fee : new BigDecimal[]{BigDecimal.ZERO, new BigDecimal("-1.00")}) {
+            assertThatThrownBy(() -> new Restaurant(null, "Cantina", null, null, project(), fee))
+                    .isInstanceOf(InvalidRestaurantException.class)
+                    .extracting("errorCode").isEqualTo("restaurant.invalid.delivery_fee");
+        }
+        Restaurant restaurant = new Restaurant(null, "Cantina", null, null, project(), new BigDecimal("8.00"));
+        assertThatThrownBy(() -> restaurant.setDeliveryFee(BigDecimal.ZERO))
+                .extracting("errorCode").isEqualTo("restaurant.invalid.delivery_fee");
+        assertThat(restaurant.getDeliveryFee()).isEqualByComparingTo("8.00");
+    }
+
+    @Test
+    @DisplayName("refrigerante e opcional; informado, deve ser maior que zero")
+    void shouldAcceptOptionalSodaPrice() {
+        Restaurant withoutSoda = new Restaurant(null, "Cantina", null, null, project(), new BigDecimal("8.00"));
+        Restaurant withSoda = new Restaurant(null, "Cantina", null, null, project(), null, new BigDecimal("5.00"));
+
+        assertThat(withoutSoda.getSodaPrice()).isNull();
+        assertThat(withSoda.getSodaPrice()).isEqualByComparingTo("5.00");
+        assertThat(withSoda.getDeliveryFee()).isNull();
+
+        withSoda.setSodaPrice(null);
+        assertThat(withSoda.getSodaPrice()).isNull();
+    }
+
+    @Test
+    @DisplayName("refrigerante zero ou negativo deve ser rejeitado com restaurant.invalid.soda_price")
+    void shouldRejectSodaPriceNotGreaterThanZero() {
+        for (BigDecimal price : new BigDecimal[]{BigDecimal.ZERO, new BigDecimal("-1.00")}) {
+            assertThatThrownBy(() -> new Restaurant(null, "Cantina", null, null, project(), null, price))
+                    .isInstanceOf(InvalidRestaurantException.class)
+                    .extracting("errorCode").isEqualTo("restaurant.invalid.soda_price");
+        }
+        Restaurant restaurant = new Restaurant(null, "Cantina", null, null, project(), null, new BigDecimal("5.00"));
+        assertThatThrownBy(() -> restaurant.setSodaPrice(BigDecimal.ZERO))
+                .extracting("errorCode").isEqualTo("restaurant.invalid.soda_price");
+        assertThat(restaurant.getSodaPrice()).isEqualByComparingTo("5.00");
     }
 
     @Test

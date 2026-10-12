@@ -44,15 +44,16 @@ public final class ApplicationFixtures {
                 LocalDate.of(1990, 5, 20), costCenterId, Role.MONTADOR);
     }
 
+    /** Almoco 10 x 25.00 e jantar 8 x 22.00; o tipo decide quais campos valem. */
     public static MealRequestDTO mealRequest(UUID restaurantId, MealType mealType) {
-        return new MealRequestDTO(restaurantId, new BigDecimal("25.00"), false, mealType, 10,
-                LocalDate.of(2026, 1, 15));
+        return new MealRequestDTO(restaurantId, mealType, false, 10, new BigDecimal("25.00"), 8,
+                new BigDecimal("22.00"));
     }
 
     public static ProjectRequestDTO projectRequest(UUID costCenterId, UUID clientId, Set<UUID> accommodationIds,
-                                                   Set<UUID> employeeIds, UUID lunchId, UUID dinnerId) {
+                                                   Set<UUID> employeeIds) {
         return new ProjectRequestDTO("os-1234", "Obra de reforma", costCenterId, LocalDate.of(2026, 1, 10), null,
-                clientId, accommodationIds, employeeIds, lunchId, dinnerId, false);
+                clientId, accommodationIds, employeeIds, false);
     }
 
     public static Address address() {
@@ -73,7 +74,15 @@ public final class ApplicationFixtures {
     }
 
     public static Restaurant restaurant(Project project) {
-        return new Restaurant(null, "Restaurante do Ze", "1133335555", address(), project);
+        return restaurant(project, null);
+    }
+
+    public static Restaurant restaurant(Project project, BigDecimal deliveryFee) {
+        return restaurant(project, deliveryFee, null);
+    }
+
+    public static Restaurant restaurant(Project project, BigDecimal deliveryFee, BigDecimal sodaPrice) {
+        return new Restaurant(null, "Restaurante do Ze", "1133335555", address(), project, deliveryFee, sodaPrice);
     }
 
     public static Meal meal(MealType mealType) {
@@ -81,13 +90,13 @@ public final class ApplicationFixtures {
     }
 
     public static Meal meal(MealType mealType, Project project) {
-        return new Meal(null, restaurant(project), new BigDecimal("25.00"), false, mealType, 10,
-                LocalDate.of(2026, 1, 15));
+        return new Meal(null, restaurant(project), mealType, false, 10, new BigDecimal("25.00"), 8,
+                new BigDecimal("22.00"));
     }
 
     public static Accommodation accommodation() {
-        return new Accommodation(null, "Maria Souza", "11988887777", address(), 8, 30, false, null,
-                new BigDecimal("1000.00"));
+        return new Accommodation(null, "Maria Souza", "11988887777", address(), 8, false, null,
+                LocalDate.of(2026, 10, 12), new BigDecimal("1000.00"));
     }
 
     public static Project project() {

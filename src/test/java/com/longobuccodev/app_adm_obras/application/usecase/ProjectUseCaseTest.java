@@ -1,5 +1,6 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
+import com.longobuccodev.app_adm_obras.application.dto.project.ProjectRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.project.ProjectResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
@@ -9,7 +10,6 @@ import com.longobuccodev.app_adm_obras.core.domain.Employee;
 import com.longobuccodev.app_adm_obras.core.domain.Meal;
 import com.longobuccodev.app_adm_obras.core.domain.Meal.MealType;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
-import com.longobuccodev.app_adm_obras.core.exception.InvalidProjectException;
 import com.longobuccodev.app_adm_obras.core.repository.AccommodationRepository;
 import com.longobuccodev.app_adm_obras.core.repository.ClientRepository;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Set;
 import java.util.UUID;
@@ -78,7 +79,7 @@ class ProjectUseCaseTest {
         when(projectRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         ProjectResponseDTO response = useCase.create(projectRequest(costCenter.getId(), client.getId(),
-                Set.of(accommodation.getId()), Set.of(employee.getId()), null, null));
+                Set.of(accommodation.getId()), Set.of(employee.getId())));
 
         assertThat(response.costCenter().id()).isEqualTo(costCenter.getId());
         assertThat(response.client().id()).isEqualTo(client.getId());
@@ -86,65 +87,32 @@ class ProjectUseCaseTest {
                 .satisfies(summary -> assertThat(summary.id()).isEqualTo(accommodation.getId()));
         assertThat(response.employees()).singleElement()
                 .satisfies(summary -> assertThat(summary.id()).isEqualTo(employee.getId()));
-        assertThat(response.lunch()).isNull();
+        assertThat(response.meals()).isEmpty();
         assertThat(response.totalPrice()).isEqualByComparingTo("1000.00");
     }
 
     @Test
-    void shouldRejectMealIdOnCreateBecauseNewProjectHasNoMeals() {
-        CostCenter costCenter = costCenter();
-        Client client = client();
-        Meal lunch = meal(MealType.LUNCH);
-        when(costCenterRepository.findById(costCenter.getId())).thenReturn(costCenter);
-        when(clientRepository.findById(client.getId())).thenReturn(client);
-        when(mealRepository.findById(lunch.getId())).thenReturn(lunch);
-
-        assertThatThrownBy(() -> useCase.create(projectRequest(costCenter.getId(), client.getId(), null, null,
-                lunch.getId(), null)))
-                .isInstanceOf(InvalidProjectException.class)
-                .extracting("errorCode").isEqualTo("project.invalid.meal");
-        verify(projectRepository, never()).save(any());
-    }
-
-    @Test
-    void updateShouldAcceptOwnMealAndRejectMealFromAnotherProject() {
+    void updateShouldKeepMealsAndRecalculateWithNewEndDate() {
         CostCenter costCenter = costCenter();
         Client client = client();
         Project existing = project();
-        Meal ownLunch = meal(MealType.LUNCH, existing);
-        Meal foreignLunch = meal(MealType.LUNCH, project());
-        existing.setLunch(ownLunch);
+        Meal meal = meal(MealType.LUNCH_AND_DINNER, existing);
+        existing.addMeal(meal);
         existing.markCreated(CLOCK_NOW);
         when(projectRepository.findById(existing.getId())).thenReturn(existing);
         when(costCenterRepository.findById(costCenter.getId())).thenReturn(costCenter);
         when(clientRepository.findById(client.getId())).thenReturn(client);
-        when(mealRepository.findById(ownLunch.getId())).thenReturn(ownLunch);
-        when(mealRepository.findById(foreignLunch.getId())).thenReturn(foreignLunch);
+        ProjectRequestDTO request = new ProjectRequestDTO("OS-1234", null, costCenter.getId(),
+                LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 16), client.getId(), null, null, false);
 
-        assertThat(useCase.update(existing.getId(), projectRequest(costCenter.getId(), client.getId(), null, null,
-                ownLunch.getId(), null)).lunch().id()).isEqualTo(ownLunch.getId());
-        assertThatThrownBy(() -> useCase.update(existing.getId(), projectRequest(costCenter.getId(),
-                client.getId(), null, null, foreignLunch.getId(), null)))
-                .isInstanceOf(InvalidProjectException.class)
-                .extracting("errorCode").isEqualTo("project.invalid.meal");
-    }
+        ProjectResponseDTO response = useCase.update(existing.getId(), request);
 
-    @Test
-    void updateWithoutMealIdsShouldKeepCurrentMeals() {
-        CostCenter costCenter = costCenter();
-        Client client = client();
-        Project existing = project();
-        Meal lunch = meal(MealType.LUNCH, existing);
-        existing.setLunch(lunch);
-        existing.markCreated(CLOCK_NOW);
-        when(projectRepository.findById(existing.getId())).thenReturn(existing);
-        when(costCenterRepository.findById(costCenter.getId())).thenReturn(costCenter);
-        when(clientRepository.findById(client.getId())).thenReturn(client);
-
-        ProjectResponseDTO response = useCase.update(existing.getId(), projectRequest(costCenter.getId(),
-                client.getId(), null, null, null, null));
-
-        assertThat(response.lunch().id()).isEqualTo(lunch.getId());
+        assertThat(response.meals()).singleElement().satisfies(summary -> {
+            assertThat(summary.id()).isEqualTo(meal.getId());
+            assertThat(summary.workingDays()).isEqualTo(10);
+            assertThat(summary.totalPrice()).isEqualByComparingTo("4260.00");
+        });
+        assertThat(response.totalPrice()).isEqualByComparingTo("4260.00");
     }
 
     @Test
@@ -152,8 +120,7 @@ class ProjectUseCaseTest {
         CostCenter costCenter = costCenter();
         when(costCenterRepository.findById(costCenter.getId())).thenReturn(costCenter);
 
-        assertThatThrownBy(() -> useCase.create(projectRequest(costCenter.getId(), UUID.randomUUID(), null, null,
-                null, null)))
+        assertThatThrownBy(() -> useCase.create(projectRequest(costCenter.getId(), UUID.randomUUID(), null, null)))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .extracting("errorCode").isEqualTo("client.not_found");
         verify(projectRepository, never()).save(any());
@@ -169,7 +136,7 @@ class ProjectUseCaseTest {
         when(clientRepository.findById(client.getId())).thenReturn(client);
 
         ProjectResponseDTO response = useCase.update(existing.getId(),
-                projectRequest(costCenter.getId(), client.getId(), null, null, null, null));
+                projectRequest(costCenter.getId(), client.getId(), null, null));
 
         assertThat(response.id()).isEqualTo(existing.getId());
         verify(projectRepository).update(any(Project.class));

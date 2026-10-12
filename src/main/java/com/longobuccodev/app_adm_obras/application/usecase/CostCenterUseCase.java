@@ -1,12 +1,13 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
+import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.costcenter.CostCenterResponseDTO;
-import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.application.mapper.CostCenterMapper;
 import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
+import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.exception.ConflictException;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
 import com.longobuccodev.app_adm_obras.core.repository.EmployeeRepository;
@@ -50,6 +51,11 @@ public class CostCenterUseCase {
 
     public PageResponseDTO<CostCenterResponseDTO> findAll(PageRequest request) {
         return PageMapper.toResponse(costCenterRepository.findAll(request), CostCenterMapper::toResponse);
+    }
+
+    /** Listagem filtrada pelo termo de busca; vazio ou nulo nao filtra. */
+    public PageResponseDTO<CostCenterResponseDTO> findAll(PageRequest request, String query) {
+        return PageMapper.toResponse(costCenterRepository.findAll(request, SearchTerm.of(query)), CostCenterMapper::toResponse);
     }
 
     public CostCenterResponseDTO update(UUID id, CostCenterRequestDTO dto) {

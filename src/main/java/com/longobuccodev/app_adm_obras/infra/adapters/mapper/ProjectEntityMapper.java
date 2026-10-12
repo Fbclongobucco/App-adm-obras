@@ -1,16 +1,18 @@
 package com.longobuccodev.app_adm_obras.infra.adapters.mapper;
 
-import com.longobuccodev.app_adm_obras.core.domain.Meal;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
 import com.longobuccodev.app_adm_obras.infra.entities.MealEntity;
 import com.longobuccodev.app_adm_obras.infra.entities.ProjectEntity;
+
+import java.util.List;
 
 public final class ProjectEntityMapper {
 
     private ProjectEntityMapper() {
     }
 
-    public static Project toDomain(ProjectEntity entity, MealEntity lunch, MealEntity dinner) {
+    /** @param meals refeicoes da obra; cada uma passa a referenciar a obra montada aqui */
+    public static Project toDomain(ProjectEntity entity, List<MealEntity> meals) {
         if (entity == null) {
             return null;
         }
@@ -31,8 +33,9 @@ public final class ProjectEntityMapper {
             entity.getRestaurants().forEach(restaurantEntity ->
                     project.addRestaurant(RestaurantEntityMapper.toDomain(restaurantEntity)));
         }
-        linkMeal(project, MealEntityMapper.toDomain(lunch), true);
-        linkMeal(project, MealEntityMapper.toDomain(dinner), false);
+        if (meals != null) {
+            meals.forEach(mealEntity -> project.addMeal(MealEntityMapper.toDomain(mealEntity)));
+        }
         return AuditMapping.restore(project, entity);
     }
 
@@ -68,17 +71,5 @@ public final class ProjectEntityMapper {
         entity.setIsCompleted(domain.getIsCompleted());
         entity.setTotalPrice(domain.getTotalPrice());
         AuditMapping.copy(domain, entity);
-    }
-
-    private static void linkMeal(Project project, Meal meal, boolean lunch) {
-        if (meal == null) {
-            return;
-        }
-        if (lunch) {
-            project.setLunch(meal);
-        } else {
-            project.setDinner(meal);
-        }
-        meal.setProject(project);
     }
 }

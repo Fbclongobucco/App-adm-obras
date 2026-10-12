@@ -1,5 +1,6 @@
 package com.longobuccodev.app_adm_obras.application.exception;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 public class ResourceNotFoundException extends RuntimeException {
@@ -45,6 +46,15 @@ public class ResourceNotFoundException extends RuntimeException {
 
     public static ResourceNotFoundException meal(UUID id) {
         return new ResourceNotFoundException("meal.not_found", "Meal not found: " + id);
+    }
+
+    public static ResourceNotFoundException mealAdjustment(UUID id) {
+        return new ResourceNotFoundException("meal.adjustment.not_found", "Meal adjustment not found: " + id);
+    }
+
+    /** Nenhuma refeicao do restaurante tem ajuste na data. */
+    public static ResourceNotFoundException restaurantAdjustment(LocalDate date) {
+        return new ResourceNotFoundException("meal.adjustment.not_found", "No meal adjustment on: " + date);
     }
 
     public static ResourceNotFoundException restaurant(UUID id) {

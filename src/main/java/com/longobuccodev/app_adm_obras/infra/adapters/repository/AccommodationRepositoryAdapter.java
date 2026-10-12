@@ -1,6 +1,7 @@
 package com.longobuccodev.app_adm_obras.infra.adapters.repository;
 
 import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
+import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.repository.AccommodationRepository;
 import com.longobuccodev.app_adm_obras.core.repository.Page;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
@@ -10,6 +11,7 @@ import com.longobuccodev.app_adm_obras.infra.entities.AccommodationEntity;
 import com.longobuccodev.app_adm_obras.infra.repositories.AccommodationJpaRepository;
 import com.longobuccodev.app_adm_obras.infra.repositories.EmployeeJpaRepository;
 import com.longobuccodev.app_adm_obras.infra.repositories.ProjectJpaRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,10 @@ import java.util.UUID;
 
 @Repository
 public class AccommodationRepositoryAdapter implements AccommodationRepository {
+
+    /** Campos pesquisaveis da listagem (busca q). */
+    private static final List<String> SEARCH_TEXT = List.of("hostName", "address.city", "project.os");
+    private static final List<String> SEARCH_DIGITS = List.of();
 
     private final AccommodationJpaRepository jpaRepository;
     private final ProjectJpaRepository projectJpaRepository;
@@ -64,9 +70,11 @@ public class AccommodationRepositoryAdapter implements AccommodationRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Accommodation> findAll(PageRequest request) {
-        return SpringPageSupport.toDomain(
-                jpaRepository.findAll(SpringPageSupport.toPageable(request)), this::toDomain);
+    public Page<Accommodation> findAll(PageRequest request, SearchTerm term) {
+        Pageable pageable = SpringPageSupport.toPageable(request);
+        return SpringPageSupport.toDomain(term.isNone()
+                ? jpaRepository.findAll(pageable)
+                : jpaRepository.findAll(SearchSpecification.of(term, SEARCH_TEXT, SEARCH_DIGITS), pageable), this::toDomain);
     }
 
     @Override

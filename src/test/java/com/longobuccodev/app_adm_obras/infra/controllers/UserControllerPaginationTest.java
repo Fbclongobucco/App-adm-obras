@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -45,7 +46,7 @@ class UserControllerPaginationTest {
     @WithMockUser(roles = "ADMIN")
     @DisplayName("sem parametros a paginacao deve usar a primeira pagina com 20 itens")
     void shouldUseFirstPageWithDefaultSize() throws Exception {
-        when(userUseCase.findAll(any(PageRequest.class))).thenReturn(pageOf(0, 20, 3));
+        when(userUseCase.findAll(any(PageRequest.class), isNull())).thenReturn(pageOf(0, 20, 3));
 
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isOk())
@@ -61,7 +62,7 @@ class UserControllerPaginationTest {
     @WithMockUser(roles = "ADMIN")
     @DisplayName("os parametros page e size devem ser repassados ao caso de uso")
     void shouldForwardPageAndSizeQueryParams() throws Exception {
-        when(userUseCase.findAll(any(PageRequest.class))).thenReturn(pageOf(2, 5, 3));
+        when(userUseCase.findAll(any(PageRequest.class), isNull())).thenReturn(pageOf(2, 5, 3));
 
         mockMvc.perform(get("/api/users").param("page", "2").param("size", "5")
                         )
@@ -103,7 +104,7 @@ class UserControllerPaginationTest {
     @WithMockUser(roles = "OPERADOR")
     @DisplayName("a listagem paginada deve continuar acessivel ao OPERADOR")
     void operadorShouldStillReadPaginatedList() throws Exception {
-        when(userUseCase.findAll(any(PageRequest.class))).thenReturn(pageOf(0, 20, 3));
+        when(userUseCase.findAll(any(PageRequest.class), isNull())).thenReturn(pageOf(0, 20, 3));
 
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isOk());
@@ -111,7 +112,7 @@ class UserControllerPaginationTest {
 
     private PageRequest capturedRequest() {
         ArgumentCaptor<PageRequest> captor = ArgumentCaptor.forClass(PageRequest.class);
-        verify(userUseCase).findAll(captor.capture());
+        verify(userUseCase).findAll(captor.capture(), isNull());
         return captor.getValue();
     }
 

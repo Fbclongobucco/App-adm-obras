@@ -1,8 +1,10 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
+import com.longobuccodev.app_adm_obras.application.dto.client.ClientRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.client.ClientResponseDTO;
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
+import com.longobuccodev.app_adm_obras.core.exception.ConflictException;
 import com.longobuccodev.app_adm_obras.core.repository.ClientRepository;
 import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +48,28 @@ class ClientUseCaseTest {
         assertThat(response.id()).isNotNull();
         assertThat(response.address().state()).isEqualTo("SP");
         assertThat(response.projects()).isEmpty();
+    }
+
+    @Test
+    void shouldCreateClientWithoutEmailWithoutCheckingDuplicates() {
+        when(clientRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        ClientRequestDTO request = clientRequest();
+        ClientRequestDTO withoutEmail = new ClientRequestDTO(request.name(), " ", request.phone(), request.address());
+
+        ClientResponseDTO response = useCase.create(withoutEmail);
+
+        assertThat(response.email()).isNull();
+        verify(clientRepository, never()).findByEmail(any());
+    }
+
+    @Test
+    void shouldRejectDuplicateInformedEmail() {
+        when(clientRepository.findByEmail("contato@alfa.com")).thenReturn(client());
+
+        assertThatThrownBy(() -> useCase.create(clientRequest()))
+                .isInstanceOf(ConflictException.class)
+                .extracting("errorCode").isEqualTo("client.duplicate.email");
+        verify(clientRepository, never()).save(any());
     }
 
     @Test

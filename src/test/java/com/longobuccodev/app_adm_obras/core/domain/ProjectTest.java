@@ -22,13 +22,20 @@ class ProjectTest {
         return new CostCenter(null, "Obra Sao Paulo", "11.222.333/0001-81");
     }
 
-    private static Meal newMeal(MealType mealType, String price, int quantity) {
+    /** Almoco 10 x 25.00 e jantar 8 x 22.00, conforme o tipo; restaurante de outra instancia da obra. */
+    private static Meal newMeal(MealType mealType) {
         Project owner = new Project(null, "OS-9999", null, newCostCenter(), LocalDate.of(2026, 1, 10), null,
                 new Client(null, "Construtora Alfa", "contato@alfa.com", "1133334444",
                         new Address(null, "Rua A", "1", "Campinas", "SP", "Brasil", "Centro", "13010000")),
                 false);
-        return new Meal(null, new Restaurant(null, "Restaurante do Ze", null, null, owner), new BigDecimal(price),
-                false, mealType, quantity, LocalDate.now());
+        return new Meal(null, new Restaurant(null, "Restaurante do Ze", null, null, owner), mealType, false,
+                10, new BigDecimal("25.00"), 8, new BigDecimal("22.00"));
+    }
+
+    /** Segunda 2026-10-05 a sexta 2026-10-16: 10 dias uteis. */
+    private static Project twoWeekProject() {
+        return new Project(null, "OS-2026", null, newCostCenter(), LocalDate.of(2026, 10, 5),
+                LocalDate.of(2026, 10, 16), newClient(), false);
     }
 
     private static Project newProject() {
@@ -148,36 +155,44 @@ class ProjectTest {
     }
 
     @Test
-    void shouldRouteLunchAndDinnerByMealType() {
-        Project project = newProject();
-        Meal lunch = newMeal(MealType.LUNCH, "25.00", 10);
-        Meal dinner = newMeal(MealType.DINNER, "30.00", 10);
+    void shouldHoldLunchAndDinnerMealsAndLinkThemToItself() {
+        Project project = twoWeekProject();
+        Meal dinner = newMeal(MealType.DINNER);
+        Meal lunch = newMeal(MealType.LUNCH);
 
-        project.addMeal(lunch);
         project.addMeal(dinner);
+        project.addMeal(lunch);
 
-        assertThat(project.getLunch()).isSameAs(lunch);
-        assertThat(project.getDinner()).isSameAs(dinner);
-        assertThat(project.getTotalPrice()).isEqualByComparingTo("550.00");
+        assertThat(project.getMeals()).containsExactly(lunch, dinner);
+        assertThat(lunch.getProject()).isSameAs(project);
+        assertThat(dinner.getProject()).isSameAs(project);
+        // (10 x 25.00 + 8 x 22.00) x 10 dias uteis
+        assertThat(project.getTotalPrice()).isEqualByComparingTo("4260.00");
     }
 
     @Test
-    void shouldRejectDuplicatedMealType() {
+    void shouldRejectOverlappingMealCoverage() {
         Project project = newProject();
-        project.addMeal(newMeal(MealType.LUNCH, "25.00", 1));
+        project.addMeal(newMeal(MealType.LUNCH_AND_DINNER));
 
-        assertThatThrownBy(() -> project.addMeal(newMeal(MealType.LUNCH, "25.00", 1)))
+        assertThatThrownBy(() -> project.addMeal(newMeal(MealType.LUNCH)))
                 .isInstanceOf(InvalidProjectException.class)
                 .extracting("errorCode").isEqualTo("project.duplicated_meal_type");
+        assertThatThrownBy(() -> project.addMeal(newMeal(MealType.DINNER)))
+                .isInstanceOf(InvalidProjectException.class)
+                .extracting("errorCode").isEqualTo("project.duplicated_meal_type");
+        assertThat(project.getMeals()).hasSize(1);
     }
 
     @Test
-    void shouldRejectMealOnWrongProperty() {
+    void shouldAcceptSameMealAgain() {
         Project project = newProject();
+        Meal lunch = newMeal(MealType.LUNCH);
+        project.addMeal(lunch);
 
-        assertThatThrownBy(() -> project.setLunch(newMeal(MealType.DINNER, "30.00", 1)))
-                .isInstanceOf(InvalidProjectException.class)
-                .extracting("errorCode").isEqualTo("project.invalid.meal_type");
+        project.addMeal(lunch);
+
+        assertThat(project.getMeals()).containsExactly(lunch);
     }
 
     @Test
@@ -190,34 +205,71 @@ class ProjectTest {
     }
 
     @Test
-    void shouldRecalculateTotalPriceWhenMealIsRemoved() {
-        Project project = newProject();
-        project.addMeal(newMeal(MealType.LUNCH, "25.00", 10));
-        project.addMeal(newMeal(MealType.DINNER, "30.00", 10));
+    void shouldRemoveMealFromTotal() {
+        Project project = twoWeekProject();
+        Meal lunch = newMeal(MealType.LUNCH);
+        project.addMeal(lunch);
+        project.addMeal(newMeal(MealType.DINNER));
 
-        project.removeMeal(MealType.DINNER);
+        project.removeMeal(lunch);
 
-        assertThat(project.getDinner()).isNull();
-        assertThat(project.getTotalPrice()).isEqualByComparingTo("250.00");
+        assertThat(project.getMeals()).hasSize(1);
+        assertThat(project.getTotalPrice()).isEqualByComparingTo("1760.00");
     }
 
     @Test
-    void shouldRejectRemovingMealThatDoesNotExist() {
-        Project project = newProject();
+    void shouldCountWeekdaysBetweenStartAndEndInclusive() {
+        assertThat(twoWeekProject().getWorkingDays()).isEqualTo(10);
+        assertThat(projectBetween("2026-10-05", "2026-10-05").getWorkingDays()).isEqualTo(1);
+        // sabado a domingo
+        assertThat(projectBetween("2026-10-10", "2026-10-11").getWorkingDays()).isZero();
+        // sabado a sabado: segunda a sexta de uma semana
+        assertThat(projectBetween("2026-10-10", "2026-10-17").getWorkingDays()).isEqualTo(5);
+        // quarta a terca seguinte
+        assertThat(projectBetween("2026-10-07", "2026-10-13").getWorkingDays()).isEqualTo(5);
+        // outubro de 2026 inteiro: 22 dias uteis
+        assertThat(projectBetween("2026-10-01", "2026-10-31").getWorkingDays()).isEqualTo(22);
+    }
 
-        assertThatThrownBy(() -> project.removeMeal(MealType.LUNCH))
-                .isInstanceOf(InvalidProjectException.class)
-                .extracting("errorCode").isEqualTo("project.missing_meal_type");
+    @Test
+    void shouldHaveNoWorkingDaysWithoutEndDate() {
+        assertThat(newProject().getWorkingDays()).isNull();
+    }
+
+    @Test
+    void shouldIgnoreMealsWithoutEstimatedTotal() {
+        Project project = newProject();
+        project.addMeal(newMeal(MealType.LUNCH_AND_DINNER));
+
+        assertThat(project.getTotalPrice()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void shouldRecalculateMealTotalsWhenEndDateChanges() {
+        Project project = twoWeekProject();
+        Meal meal = newMeal(MealType.LUNCH_AND_DINNER);
+        project.addMeal(meal);
+
+        project.setEndDate(LocalDate.of(2026, 10, 9));
+
+        assertThat(meal.getWorkingDays()).isEqualTo(5);
+        assertThat(meal.getTotalPrice()).isEqualByComparingTo("2130.00");
+        assertThat(project.getTotalPrice()).isEqualByComparingTo("2130.00");
+
+        project.setEndDate(null);
+
+        assertThat(meal.getTotalPrice()).isNull();
+        assertThat(project.getTotalPrice()).isEqualByComparingTo("0");
     }
 
     @Test
     void shouldSumAccommodationsInTotalPrice() {
         Accommodation first = new Accommodation(null, "Maria Souza", "11988887777",
                 new Address(null, "Rua das Flores", "120", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"),
-                8, 30, false, null, new BigDecimal("1000.00"));
+                8, false, null, LocalDate.of(2026, 10, 12), new BigDecimal("1000.00"));
         Accommodation second = new Accommodation(null, "Jose Lima", "11988887778",
                 new Address(null, "Rua das Flores", "121", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"),
-                4, 15, false, null, new BigDecimal("500.50"));
+                4, false, null, LocalDate.of(2026, 10, 12), new BigDecimal("500.50"));
 
         Project project = newProject();
         project.addAccommodation(first);
@@ -225,18 +277,6 @@ class ProjectTest {
 
         assertThat(project.getAccommodations()).hasSize(2);
         assertThat(project.getTotalPrice()).isEqualByComparingTo("1500.50");
-    }
-
-    @Test
-    void shouldRecalculateTotalPriceWhenMealPriceChanges() {
-        Project project = newProject();
-        Meal lunch = newMeal(MealType.LUNCH, "25.00", 10);
-        project.addMeal(lunch);
-
-        lunch.setPrice(new BigDecimal("30.00"));
-        project.setLunch(lunch);
-
-        assertThat(project.getTotalPrice()).isEqualByComparingTo("300.00");
     }
 
     @Test
@@ -270,5 +310,10 @@ class ProjectTest {
                 LocalDate.of(2026, 1, 10), null,
                 newClient(), false))
                 .isInstanceOf(InvalidProjectException.class);
+    }
+
+    private static Project projectBetween(String start, String end) {
+        return new Project(null, "OS-2026", null, newCostCenter(), LocalDate.parse(start), LocalDate.parse(end),
+                newClient(), false);
     }
 }

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -50,7 +51,7 @@ class AccommodationUseCaseTest {
     private static AccommodationRequestDTO newRequest(UUID projectId, Set<UUID> employeeIds) {
         return new AccommodationRequestDTO("Maria Souza", "11988887777",
                 new AddressRequestDTO("Rua das Flores", "120", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"),
-                8, 30, false, projectId, employeeIds, new BigDecimal("4500.00"));
+                8, false, projectId, employeeIds, LocalDate.of(2026, 10, 12), new BigDecimal("4500.00"));
     }
 
     @Test
@@ -114,7 +115,7 @@ class AccommodationUseCaseTest {
         when(accommodationRepository.findById(existing.getId())).thenReturn(existing);
         AccommodationRequestDTO request = new AccommodationRequestDTO("Jose Lima", "11988887778",
                 new AddressRequestDTO("Rua das Flores", "121", "Sao Paulo", "SP", "Brasil", "Centro", "01310-100"),
-                4, 15, true, null, null, new BigDecimal("500.50"));
+                4, true, null, null, LocalDate.of(2026, 10, 12), new BigDecimal("500.50"));
 
         AccommodationResponseDTO response = useCase.update(existing.getId(), request);
 

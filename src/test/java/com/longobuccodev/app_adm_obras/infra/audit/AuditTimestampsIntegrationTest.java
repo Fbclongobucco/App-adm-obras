@@ -102,7 +102,7 @@ class AuditTimestampsIntegrationTest {
 
         Map<String, Object> body = api.accommodationBody(projectId);
         ResponseEntity<Map> accommodation = api.post("/api/accommodations", body);
-        body.put("days", 12);
+        body.put("capacity", 6);
         api.put("/api/accommodations/" + AdminApi.id(accommodation), body);
         api.delete("/api/accommodations/" + AdminApi.id(accommodation));
 

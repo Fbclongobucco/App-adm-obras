@@ -10,10 +10,9 @@ import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
-import com.longobuccodev.app_adm_obras.core.domain.Meal;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
+import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.exception.ConflictException;
-import com.longobuccodev.app_adm_obras.core.exception.InvalidProjectException;
 import com.longobuccodev.app_adm_obras.core.repository.AccommodationRepository;
 import com.longobuccodev.app_adm_obras.core.repository.ClientRepository;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
@@ -80,10 +79,18 @@ public class ProjectUseCase {
         return findAll(request.withSort(Sort.parse(sort, ProjectRepository.SORT_FIELDS)));
     }
 
+    /** Listagem ordenada e filtrada pelo termo de busca; vazio ou nulo nao filtra. */
+    public PageResponseDTO<ProjectResponseDTO> findAll(PageRequest request, String sort, String query) {
+        PageRequest sorted = request.withSort(Sort.parse(sort, ProjectRepository.SORT_FIELDS));
+        return PageMapper.toResponse(projectRepository.findAll(sorted, SearchTerm.of(query)), ProjectMapper::toResponse);
+    }
+
     public ProjectResponseDTO update(UUID id, ProjectRequestDTO dto) {
         Project existing = findProject(id);
         Project updated = toDomain(existing, dto);
         existing.getRestaurants().forEach(updated::addRestaurant);
+        // Refeicoes seguem o restaurante; passam a calcular custos com as datas novas da obra
+        existing.getMeals().forEach(updated::addMeal);
         requireUniqueOs(updated);
         updated.touchFrom(existing, clock.instant());
         projectRepository.update(updated);
@@ -110,21 +117,6 @@ public class ProjectUseCase {
         return EntityLookup.require(id, projectRepository::findById, ResourceNotFoundException::project);
     }
 
-    /**
-     * lunchId/dinnerId so confirmam uma refeicao que ja pertence a obra pelo restaurante; nao movem
-     * refeicoes. Sem o id, vale a refeicao atual da obra.
-     */
-    private Meal ownMeal(Project existing, UUID mealId, Meal current) {
-        if (mealId == null) {
-            return current;
-        }
-        Meal meal = EntityLookup.require(mealId, mealRepository::findById, ResourceNotFoundException::meal);
-        if (existing == null || meal.getProject() == null || !meal.getProject().getId().equals(existing.getId())) {
-            throw InvalidProjectException.mealFromAnotherProject(mealId);
-        }
-        return meal;
-    }
-
     private Project toDomain(Project existing, ProjectRequestDTO dto) {
         CostCenter costCenter = EntityLookup.optional(dto.costCenterId(), costCenterRepository::findById,
                 ResourceNotFoundException::costCenter);
@@ -134,12 +126,10 @@ public class ProjectUseCase {
                 accommodationRepository::findById, ResourceNotFoundException::accommodation);
         Set<Employee> employees = EntityLookup.all(dto.employeeIds(), employeeRepository::findById,
                 ResourceNotFoundException::employee);
-        Meal lunch = ownMeal(existing, dto.lunchId(), existing == null ? null : existing.getLunch());
-        Meal dinner = ownMeal(existing, dto.dinnerId(), existing == null ? null : existing.getDinner());
 
         if (existing == null) {
-            return ProjectMapper.toDomain(dto, costCenter, client, accommodations, employees, lunch, dinner);
+            return ProjectMapper.toDomain(dto, costCenter, client, accommodations, employees);
         }
-        return ProjectMapper.toDomain(existing, dto, costCenter, client, accommodations, employees, lunch, dinner);
+        return ProjectMapper.toDomain(existing, dto, costCenter, client, accommodations, employees);
     }
 }

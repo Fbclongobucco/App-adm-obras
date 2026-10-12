@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * Traduz uma violacao de integridade do banco para o codigo de erro da API, pelo nome da
- * restricao (V1/V3). Cobre a corrida entre a verificacao do caso de uso e a gravacao.
+ * restricao (V1/V3/V4/V7). Cobre a corrida entre a verificacao do caso de uso e a gravacao.
  * A mensagem devolvida nunca carrega texto do banco.
  */
 final class IntegrityViolationTranslator {
@@ -20,7 +20,9 @@ final class IntegrityViolationTranslator {
             Map.entry("uk_employee_email", "employee.duplicate.email"),
             Map.entry("uk_employee_cpf", "employee.duplicate.cpf"),
             Map.entry("uk_app_user_email", "user.duplicate.email"),
-            Map.entry("uk_meal_project_type", "meal.duplicate.type"),
+            Map.entry("uk_meal_project_lunch", "meal.duplicate.type"),
+            Map.entry("uk_meal_project_dinner", "meal.duplicate.type"),
+            Map.entry("uk_meal_adjustment_meal_date", "meal.adjustment.duplicate.date"),
             Map.entry("fk_employee_cost_center", "cost_center.in_use"),
             Map.entry("fk_project_cost_center", "cost_center.in_use"),
             Map.entry("fk_project_client", "client.in_use"),

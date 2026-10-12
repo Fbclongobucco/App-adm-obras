@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,7 +25,7 @@ class ProjectEntityMapperTest {
     void toDomainShouldMapScalarFieldsAndManyToOneRelations() {
         ProjectEntity entity = projectEntity();
 
-        Project project = ProjectEntityMapper.toDomain(entity, null, null);
+        Project project = ProjectEntityMapper.toDomain(entity, null);
 
         assertThat(project.getId()).isEqualTo(entity.getId());
         assertThat(project.getOs()).isEqualTo("OS-1234");
@@ -39,21 +40,40 @@ class ProjectEntityMapperTest {
     @Test
     @DisplayName("toDomain deve retornar null quando a entidade for null")
     void toDomainShouldReturnNullForNullEntity() {
-        assertThat(ProjectEntityMapper.toDomain(null, null, null)).isNull();
+        assertThat(ProjectEntityMapper.toDomain(null, null)).isNull();
     }
 
     @Test
-    @DisplayName("toDomain deve ligar as refeicoes ao projeto e somar o total")
+    @DisplayName("toDomain deve ligar as refeicoes ao projeto e somar o total estimado")
     void toDomainShouldLinkMealsAndCalculateTotal() {
         ProjectEntity entity = projectEntity();
+        entity.setStartDate(LocalDate.of(2026, 10, 5));
+        entity.setEndDate(LocalDate.of(2026, 10, 16));
 
-        Project project = ProjectEntityMapper.toDomain(entity, lunch(entity), dinner(entity));
+        Project project = ProjectEntityMapper.toDomain(entity, List.of(dinner(entity), lunch(entity)));
 
-        assertThat(project.getLunch().getRestaurant().getName()).isEqualTo("Restaurante do Ze");
-        assertThat(project.getLunch().getProject()).isSameAs(project);
-        assertThat(project.getDinner().getRestaurant().getName()).isEqualTo("Churrascaria do Boi");
-        assertThat(project.getDinner().getProject()).isSameAs(project);
-        assertThat(project.getTotalPrice()).isEqualByComparingTo("700.00");
+        assertThat(project.getMeals()).extracting(meal -> meal.getRestaurant().getName())
+                .containsExactly("Restaurante do Ze", "Churrascaria do Boi");
+        assertThat(project.getMeals()).allSatisfy(meal -> assertThat(meal.getProject()).isSameAs(project));
+        // (10 x 25.00 + 8 x 45.00) x 10 dias uteis
+        assertThat(project.getTotalPrice()).isEqualByComparingTo("6100.00");
+    }
+
+    @Test
+    @DisplayName("toEntity da refeicao deve gravar a cobertura como TRUE ou NULL")
+    void mealEntityShouldCarryCoverageSlots() {
+        ProjectEntity entity = projectEntity();
+        Project project = ProjectEntityMapper.toDomain(entity, List.of(lunch(entity), dinner(entity)));
+
+        MealEntity lunch = MealEntityMapper.toEntity(project.getMeals().get(0), lunch(entity).getRestaurant());
+        MealEntity dinner = MealEntityMapper.toEntity(project.getMeals().get(1), dinner(entity).getRestaurant());
+
+        assertThat(lunch.getLunchSlot()).isTrue();
+        assertThat(lunch.getDinnerSlot()).isNull();
+        assertThat(lunch.getDinnerQuantity()).isNull();
+        assertThat(dinner.getLunchSlot()).isNull();
+        assertThat(dinner.getDinnerSlot()).isTrue();
+        assertThat(dinner.getDinnerPrice()).isEqualByComparingTo("45.00");
     }
 
     @Test
@@ -63,8 +83,7 @@ class ProjectEntityMapperTest {
 
         assertThat(project.getAccommodations()).isEmpty();
         assertThat(project.getEmployees()).isEmpty();
-        assertThat(project.getLunch()).isNull();
-        assertThat(project.getDinner()).isNull();
+        assertThat(project.getMeals()).isEmpty();
     }
 
     @Test
@@ -148,15 +167,20 @@ class ProjectEntityMapperTest {
     }
 
     private MealEntity lunch(ProjectEntity project) {
-        return meal(project, MealType.LUNCH, "Restaurante do Ze", "25.00", 10);
+        MealEntity meal = meal(project, MealType.LUNCH, "Restaurante do Ze");
+        meal.setLunchQuantity(10);
+        meal.setLunchPrice(new BigDecimal("25.00"));
+        return meal;
     }
 
     private MealEntity dinner(ProjectEntity project) {
-        return meal(project, MealType.DINNER, "Churrascaria do Boi", "45.00", 10);
+        MealEntity meal = meal(project, MealType.DINNER, "Churrascaria do Boi");
+        meal.setDinnerQuantity(8);
+        meal.setDinnerPrice(new BigDecimal("45.00"));
+        return meal;
     }
 
-    private MealEntity meal(ProjectEntity project, MealType mealType, String restaurantName, String price,
-                            int quantity) {
+    private MealEntity meal(ProjectEntity project, MealType mealType, String restaurantName) {
         RestaurantEntity restaurant = RestaurantEntity.create();
         restaurant.setId(UUID.randomUUID());
         restaurant.setName(restaurantName);
@@ -165,12 +189,8 @@ class ProjectEntityMapperTest {
         meal.setId(UUID.randomUUID());
         meal.setRestaurant(restaurant);
         meal.setProject(project);
-        meal.setPrice(new BigDecimal(price));
-        meal.setQuantity(quantity);
-        meal.setTotalPrice(new BigDecimal(price).multiply(BigDecimal.valueOf(quantity)));
         meal.setIsBilled(false);
         meal.setMealType(mealType);
-        meal.setDate(LocalDate.of(2026, 1, 15));
         return meal;
     }
 }

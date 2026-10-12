@@ -4,6 +4,7 @@ import com.longobuccodev.app_adm_obras.core.exception.InvalidAccommodationExcept
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,8 +17,8 @@ class AccommodationTest {
     }
 
     private static Accommodation newAccommodation() {
-        return new Accommodation(null, " Maria  Souza ", "(11) 98888-7777", newAddress(), 8, 30,
-                null, null, new BigDecimal("4500.00"));
+        return new Accommodation(null, " Maria  Souza ", "(11) 98888-7777", newAddress(), 8,
+                null, null, LocalDate.of(2026, 10, 12), new BigDecimal("4500.00"));
     }
 
     @Test
@@ -28,7 +29,7 @@ class AccommodationTest {
         assertThat(accommodation.getHostName()).isEqualTo("Maria Souza");
         assertThat(accommodation.getHostPhone()).isEqualTo("11988887777");
         assertThat(accommodation.getCapacity()).isEqualTo(8);
-        assertThat(accommodation.getDays()).isEqualTo(30);
+        assertThat(accommodation.getPeriods()).hasSize(1);
         assertThat(accommodation.getEmployees()).isEmpty();
         assertThat(accommodation.getIsContract()).isFalse();
     }
@@ -37,8 +38,8 @@ class AccommodationTest {
     void shouldKeepProvidedIdAndGenerateWhenNull() {
         UUID id = UUID.randomUUID();
 
-        assertThat(new Accommodation(id, "Maria Souza", "11988887777", newAddress(), 8, 30,
-                true, null, BigDecimal.TEN).getId()).isEqualTo(id);
+        assertThat(new Accommodation(id, "Maria Souza", "11988887777", newAddress(), 8,
+                true, null, LocalDate.of(2026, 10, 12), BigDecimal.TEN).getId()).isEqualTo(id);
         assertThat(newAccommodation().getId()).isNotNull();
     }
 
@@ -115,25 +116,15 @@ class AccommodationTest {
     }
 
     @Test
-    void shouldRejectInvalidDays() {
+    void shouldRejectInvalidLease() {
         Accommodation accommodation = newAccommodation();
 
-        assertThatThrownBy(() -> accommodation.setDays(0))
+        assertThatThrownBy(() -> accommodation.configureLease(null, BigDecimal.TEN))
                 .isInstanceOf(InvalidAccommodationException.class)
-                .extracting("errorCode").isEqualTo("accommodation.invalid.days");
-        assertThatThrownBy(() -> accommodation.setDays(366))
-                .isInstanceOf(InvalidAccommodationException.class);
-    }
-
-    @Test
-    void shouldRejectNegativeTotalPrice() {
-        Accommodation accommodation = newAccommodation();
-
-        assertThatThrownBy(() -> accommodation.setTotalPrice(new BigDecimal("-0.01")))
+                .hasMessageContaining("start date");
+        assertThatThrownBy(() -> accommodation.configureLease(LocalDate.of(2026, 10, 12), BigDecimal.ZERO))
                 .isInstanceOf(InvalidAccommodationException.class)
-                .extracting("errorCode").isEqualTo("accommodation.invalid.total_price");
-        assertThatThrownBy(() -> accommodation.setTotalPrice(null))
-                .isInstanceOf(InvalidAccommodationException.class);
+                .hasMessageContaining("monthly price");
     }
 
     @Test
@@ -149,8 +140,8 @@ class AccommodationTest {
 
     @Test
     void shouldValidateOnConstructor() {
-        assertThatThrownBy(() -> new Accommodation(null, null, "11988887777", newAddress(), 8, 30,
-                false, null, BigDecimal.TEN))
+        assertThatThrownBy(() -> new Accommodation(null, null, "11988887777", newAddress(), 8,
+                false, null, LocalDate.of(2026, 10, 12), BigDecimal.TEN))
                 .isInstanceOf(InvalidAccommodationException.class);
     }
 }

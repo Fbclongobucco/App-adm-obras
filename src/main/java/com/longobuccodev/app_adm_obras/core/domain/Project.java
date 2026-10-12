@@ -1,12 +1,16 @@
 package com.longobuccodev.app_adm_obras.core.domain;
 
-import com.longobuccodev.app_adm_obras.core.domain.Meal.MealType;
 import com.longobuccodev.app_adm_obras.core.exception.InvalidProjectException;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -31,9 +35,7 @@ public class Project extends Audited {
     private final Set<Accommodation> accommodations = new LinkedHashSet<>();
     private final Set<Restaurant> restaurants = new LinkedHashSet<>();
     private final Set<Employee> employees = new LinkedHashSet<>();
-    private Meal lunch;
-    private Meal dinner;
-    private BigDecimal totalPrice;
+    private final List<Meal> meals = new ArrayList<>();
     private Boolean isCompleted;
 
     public Project(UUID id, String os, String description, CostCenter costCenter, LocalDate startDate,
@@ -46,7 +48,6 @@ public class Project extends Audited {
         setEndDate(endDate);
         setClient(client);
         setCompleted(isCompleted);
-        refreshTotalPrice();
     }
 
     public UUID getId() {
@@ -126,14 +127,12 @@ public class Project extends Audited {
         if (accommodation.getProject() != this) {
             accommodation.setProject(this);
         }
-        refreshTotalPrice();
     }
 
     public void removeAccommodation(Accommodation accommodation) {
         if (accommodations.remove(accommodation) && accommodation.getProject() == this) {
             accommodation.setProject(null);
         }
-        refreshTotalPrice();
     }
 
     /** Restaurantes que atendem a obra. Leitura apenas: o vinculo e definido pelo restaurante. */
@@ -166,26 +165,46 @@ public class Project extends Audited {
         }
     }
 
-    public Meal getLunch() {
-        return lunch;
+    /**
+     * Refeicoes da obra, ordenadas por tipo. Leitura apenas: o vinculo e definido pelo
+     * restaurante da refeicao.
+     */
+    public List<Meal> getMeals() {
+        List<Meal> sorted = new ArrayList<>(meals);
+        sorted.sort(Comparator.comparing(Meal::getMealType));
+        return Collections.unmodifiableList(sorted);
     }
 
-    public void setLunch(Meal lunch) {
-        this.lunch = validateMeal(lunch, MealType.LUNCH);
-        refreshTotalPrice();
+    /** Dias de segunda a sexta de startDate a endDate, inclusive, sem feriados; null sem termino. */
+    public Integer getWorkingDays() {
+        if (startDate == null || endDate == null) {
+            return null;
+        }
+        long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        long workingDays = (days / 7) * 5;
+        DayOfWeek day = startDate.getDayOfWeek();
+        for (long i = 0; i < days % 7; i++) {
+            if (day != DayOfWeek.SATURDAY && day != DayOfWeek.SUNDAY) {
+                workingDays++;
+            }
+            day = day.plus(1);
+        }
+        return Math.toIntExact(workingDays);
     }
 
-    public Meal getDinner() {
-        return dinner;
-    }
-
-    public void setDinner(Meal dinner) {
-        this.dinner = validateMeal(dinner, MealType.DINNER);
-        refreshTotalPrice();
-    }
-
+    /** Total estimado das refeicoes (sem termino conta zero) mais o total das hospedagens. */
     public BigDecimal getTotalPrice() {
-        return totalPrice;
+        BigDecimal total = BigDecimal.ZERO;
+        for (Meal meal : meals) {
+            BigDecimal mealTotal = meal.getTotalPrice();
+            if (mealTotal != null) {
+                total = total.add(mealTotal);
+            }
+        }
+        for (Accommodation accommodation : accommodations) {
+            total = total.add(accommodation.getTotalPrice());
+        }
+        return total;
     }
 
     public Boolean getIsCompleted() {
@@ -200,36 +219,24 @@ public class Project extends Audited {
         this.isCompleted = completed != null && completed;
     }
 
+    /**
+     * Inclui a refeicao e liga a ela esta obra. Rejeita refeicao que sirva almoco ou jantar ja
+     * servido por outra refeicao da obra.
+     */
     public void addMeal(Meal meal) {
-        if (meal == null) {
+        if (meal == null || meal.getMealType() == null) {
             throw InvalidProjectException.missingMeal();
         }
-        MealType mealType = validateMealType(meal);
-        if (mealType == MealType.LUNCH) {
-            if (lunch != null) {
-                throw InvalidProjectException.duplicatedMealType(mealType.name());
-            }
-            setLunch(meal);
-        } else {
-            if (dinner != null) {
-                throw InvalidProjectException.duplicatedMealType(mealType.name());
-            }
-            setDinner(meal);
+        if (meals.stream().anyMatch(meal::overlaps)) {
+            throw InvalidProjectException.duplicatedMealType(meal.getMealType().name());
         }
+        meals.remove(meal);
+        meals.add(meal);
+        meal.setProject(this);
     }
 
-    public void removeMeal(MealType mealType) {
-        if (mealType == MealType.LUNCH) {
-            if (lunch == null) {
-                throw InvalidProjectException.missingMealType(mealType.name());
-            }
-            setLunch(null);
-        } else {
-            if (dinner == null) {
-                throw InvalidProjectException.missingMealType(mealType.name());
-            }
-            setDinner(null);
-        }
+    public void removeMeal(Meal meal) {
+        meals.remove(meal);
     }
 
     @Override
@@ -243,24 +250,6 @@ public class Project extends Audited {
     @Override
     public int hashCode() {
         return Objects.hashCode(id);
-    }
-
-    void refreshTotalPrice() {
-        this.totalPrice = calculateTotalPrice();
-    }
-
-    private BigDecimal calculateTotalPrice() {
-        BigDecimal total = BigDecimal.ZERO;
-        if (lunch != null) {
-            total = total.add(lunch.getTotalPrice());
-        }
-        if (dinner != null) {
-            total = total.add(dinner.getTotalPrice());
-        }
-        for (Accommodation accommodation : accommodations) {
-            total = total.add(accommodation.getTotalPrice());
-        }
-        return total;
     }
 
     private static String validateOs(String os) {
@@ -313,24 +302,5 @@ public class Project extends Audited {
             throw InvalidProjectException.missingClient();
         }
         return client;
-    }
-
-    private static Meal validateMeal(Meal meal, MealType expectedType) {
-        if (meal == null) {
-            return null;
-        }
-        MealType mealType = validateMealType(meal);
-        if (mealType != expectedType) {
-            throw InvalidProjectException.mealTypeMismatch(expectedType.name(), mealType.name());
-        }
-        return meal;
-    }
-
-    private static MealType validateMealType(Meal meal) {
-        MealType mealType = meal.getMealType();
-        if (mealType == null) {
-            throw InvalidProjectException.missingMeal();
-        }
-        return mealType;
     }
 }

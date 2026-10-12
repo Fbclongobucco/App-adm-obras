@@ -1,11 +1,13 @@
 package com.longobuccodev.app_adm_obras.infra.adapters.repository;
 
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
+import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
 import com.longobuccodev.app_adm_obras.core.repository.Page;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.infra.adapters.mapper.CostCenterEntityMapper;
 import com.longobuccodev.app_adm_obras.infra.repositories.CostCenterJpaRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +16,10 @@ import java.util.UUID;
 
 @Repository
 public class CostCenterRepositoryAdapter implements CostCenterRepository {
+
+    /** Campos pesquisaveis da listagem (busca q). */
+    private static final List<String> SEARCH_TEXT = List.of("name");
+    private static final List<String> SEARCH_DIGITS = List.of("cnpj");
 
     private final CostCenterJpaRepository jpaRepository;
 
@@ -47,9 +53,11 @@ public class CostCenterRepositoryAdapter implements CostCenterRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CostCenter> findAll(PageRequest request) {
-        return SpringPageSupport.toDomain(
-                jpaRepository.findAll(SpringPageSupport.toPageable(request)), CostCenterEntityMapper::toDomain);
+    public Page<CostCenter> findAll(PageRequest request, SearchTerm term) {
+        Pageable pageable = SpringPageSupport.toPageable(request);
+        return SpringPageSupport.toDomain(term.isNone()
+                ? jpaRepository.findAll(pageable)
+                : jpaRepository.findAll(SearchSpecification.of(term, SEARCH_TEXT, SEARCH_DIGITS), pageable), CostCenterEntityMapper::toDomain);
     }
 
     @Override

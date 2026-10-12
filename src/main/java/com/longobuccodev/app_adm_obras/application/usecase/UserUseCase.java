@@ -7,6 +7,7 @@ import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundExc
 import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.application.mapper.UserMapper;
 import com.longobuccodev.app_adm_obras.core.domain.RefreshToken.RevokeReason;
+import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.domain.User;
 import com.longobuccodev.app_adm_obras.core.exception.ConflictException;
 import com.longobuccodev.app_adm_obras.core.exception.InvalidUserException;
@@ -56,6 +57,11 @@ public class UserUseCase {
 
     public PageResponseDTO<UserResponseDTO> findAll(PageRequest request) {
         return PageMapper.toResponse(userRepository.findAll(request), UserMapper::toResponse);
+    }
+
+    /** Listagem filtrada pelo termo de busca; vazio ou nulo nao filtra. */
+    public PageResponseDTO<UserResponseDTO> findAll(PageRequest request, String query) {
+        return PageMapper.toResponse(userRepository.findAll(request, SearchTerm.of(query)), UserMapper::toResponse);
     }
 
     public UserResponseDTO update(UUID id, UserRequestDTO dto) {

@@ -3,6 +3,7 @@ package com.longobuccodev.app_adm_obras.core.repository;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
+import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
 
 import java.util.List;
@@ -19,7 +20,12 @@ public interface EmployeeRepository {
     List<Employee> findByClient(Client client);
     List<Employee> findByProject(Project project);
     List<Employee> findAll();
-    Page<Employee> findAll(PageRequest request);
+    default Page<Employee> findAll(PageRequest request) {
+        return findAll(request, SearchTerm.NONE);
+    }
+
+    /** Pagina filtrada pelo termo nos campos pesquisaveis do recurso; {@link SearchTerm#NONE} nao filtra. */
+    Page<Employee> findAll(PageRequest request, SearchTerm term);
     void delete(Employee employee);
     void deleteById(UUID id);
     void update(Employee employee);

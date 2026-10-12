@@ -156,7 +156,38 @@ class OpenApiDocumentationIntegrationTest {
     }
 
     @Test
-    @DisplayName("PUT de obra deve documentar a substituicao completa e o papel validador de lunchId/dinnerId")
+    @DisplayName("fechamento semanal e ajustes do restaurante devem estar documentados")
+    @SuppressWarnings("unchecked")
+    void weeklyClosingShouldBeDocumented() {
+        Map<String, Object> paths = (Map<String, Object>) restTemplate.getForObject("/v3/api-docs", Map.class)
+                .get("paths");
+        for (String path : List.of("/api/meals/{id}/weekly-closing", "/api/restaurants/{id}/weekly-closing")) {
+            Map<String, Object> get = (Map<String, Object>) ((Map<String, Object>) paths.get(path)).get("get");
+            assertThat((String) get.get("description")).contains("OUT_OF_PERIOD", "selected");
+        }
+        assertThat((Map<String, Object>) paths.get("/api/restaurants/{id}/adjustments")).containsKey("post");
+        assertThat((Map<String, Object>) paths.get("/api/restaurants/{id}/adjustments/{date}")).containsKey("delete");
+    }
+
+    @Test
+    @DisplayName("listagens devem documentar o parametro de busca q")
+    @SuppressWarnings("unchecked")
+    void listingsShouldDocumentSearch() {
+        Map<String, Object> paths = (Map<String, Object>) restTemplate.getForObject("/v3/api-docs", Map.class)
+                .get("paths");
+        for (String path : List.of("/api/projects", "/api/clients", "/api/employees", "/api/cost-centers",
+                "/api/restaurants", "/api/meals", "/api/accommodations", "/api/users")) {
+            Map<String, Object> get = (Map<String, Object>) ((Map<String, Object>) paths.get(path)).get("get");
+            Map<String, Object> q = ((List<Map<String, Object>>) get.get("parameters")).stream()
+                    .filter(parameter -> "q".equals(parameter.get("name")))
+                    .findFirst().orElseThrow(() -> new AssertionError(path + " sem parametro q"));
+            assertThat(q).containsEntry("required", false);
+            assertThat((String) q.get("description")).contains("page.invalid.query");
+        }
+    }
+
+    @Test
+    @DisplayName("PUT de obra deve documentar a substituicao completa e que refeicoes seguem o restaurante")
     @SuppressWarnings("unchecked")
     void projectUpdateShouldDocumentReplacementSemantics() {
         Map<String, Object> paths = (Map<String, Object>) restTemplate.getForObject("/v3/api-docs", Map.class)
@@ -165,6 +196,24 @@ class OpenApiDocumentationIntegrationTest {
                 .get("put");
 
         assertThat((String) put.get("description"))
-                .contains("employeeIds", "accommodationIds", "lunchId", "dinnerId", "project.invalid.meal");
+                .contains("employeeIds", "accommodationIds", "restaurante", "meals")
+                .doesNotContain("lunchId", "dinnerId");
+    }
+
+    @Test
+    @DisplayName("POST e PUT de refeicao devem documentar tipos, campos por refeicao servida e custos")
+    @SuppressWarnings("unchecked")
+    void mealWriteShouldDocumentContract() {
+        Map<String, Object> paths = (Map<String, Object>) restTemplate.getForObject("/v3/api-docs", Map.class)
+                .get("paths");
+        Map<String, Object> post = (Map<String, Object>) ((Map<String, Object>) paths.get("/api/meals")).get("post");
+        Map<String, Object> put = (Map<String, Object>) ((Map<String, Object>) paths.get("/api/meals/{id}"))
+                .get("put");
+
+        for (Map<String, Object> operation : java.util.List.of(post, put)) {
+            assertThat((String) operation.get("description")).contains("LUNCH_AND_DINNER",
+                    "meal.invalid.lunch_quantity", "meal.invalid.dinner_price", "meal.duplicate.type",
+                    "dailyPrice", "workingDays", "totalPrice");
+        }
     }
 }

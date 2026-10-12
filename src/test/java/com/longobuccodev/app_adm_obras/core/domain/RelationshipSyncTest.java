@@ -27,8 +27,8 @@ class RelationshipSyncTest {
     }
 
     private static Accommodation newAccommodation(Project project, String totalPrice) {
-        return new Accommodation(null, "Maria Souza", "11988887777", newAddress(), 8, 30, false, project,
-                new BigDecimal(totalPrice));
+        return new Accommodation(null, "Maria Souza", "11988887777", newAddress(), 8, false, project,
+                LocalDate.of(2026, 10, 12), new BigDecimal(totalPrice));
     }
 
     private static Employee newEmployee() {
@@ -121,7 +121,7 @@ class RelationshipSyncTest {
         Project project = newProject(newClient("Construtora Alfa"));
         Accommodation accommodation = newAccommodation(project, "1000.00");
 
-        accommodation.setTotalPrice(new BigDecimal("1200.00"));
+        accommodation.renew(null, new BigDecimal("200.00"));
 
         assertThat(project.getTotalPrice()).isEqualByComparingTo("1200.00");
     }

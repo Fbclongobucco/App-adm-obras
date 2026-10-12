@@ -9,9 +9,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -36,9 +39,6 @@ public class AccommodationEntity extends AuditedEntity {
     @Column(nullable = false)
     private Integer capacity;
 
-    @Column(nullable = false)
-    private Integer days;
-
     @Column(name = "is_contract", nullable = false)
     private Boolean isContract;
 
@@ -52,8 +52,16 @@ public class AccommodationEntity extends AuditedEntity {
             inverseJoinColumns = @JoinColumn(name = "employee_id"))
     private Set<EmployeeEntity> employees = new LinkedHashSet<>();
 
-    @Column(name = "total_price", nullable = false, precision = 19, scale = 2)
-    private BigDecimal totalPrice;
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
+
+    @Column(name = "monthly_price", nullable = false, precision = 19, scale = 2)
+    private BigDecimal monthlyPrice;
+
+    // Set (nao List): junto com employees EAGER, duas colecoes List seriam "bags" proibidas pelo Hibernate
+    @OneToMany(mappedBy = "accommodation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OrderBy("startDate")
+    private Set<AccommodationPeriodEntity> periods = new LinkedHashSet<>();
 
     public static AccommodationEntity create() {
         return new AccommodationEntity();
@@ -102,14 +110,6 @@ public class AccommodationEntity extends AuditedEntity {
         this.capacity = capacity;
     }
 
-    public Integer getDays() {
-        return days;
-    }
-
-    public void setDays(Integer days) {
-        this.days = days;
-    }
-
     public Boolean getIsContract() {
         return isContract;
     }
@@ -134,11 +134,23 @@ public class AccommodationEntity extends AuditedEntity {
         this.employees = employees;
     }
 
-    public BigDecimal getTotalPrice() {
-        return totalPrice;
+    public LocalDate getStartDate() {
+        return startDate;
     }
 
-    public void setTotalPrice(BigDecimal totalPrice) {
-        this.totalPrice = totalPrice;
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public BigDecimal getMonthlyPrice() {
+        return monthlyPrice;
+    }
+
+    public void setMonthlyPrice(BigDecimal monthlyPrice) {
+        this.monthlyPrice = monthlyPrice;
+    }
+
+    public Set<AccommodationPeriodEntity> getPeriods() {
+        return periods;
     }
 }

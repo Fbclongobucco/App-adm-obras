@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
 
+/** A refeicao se vincula a obra pelo restaurante; nao ha campo de refeicao aqui. */
 public record ProjectRequestDTO(
         String os,
         String description,
@@ -13,8 +14,6 @@ public record ProjectRequestDTO(
         UUID clientId,
         Set<UUID> accommodationIds,
         Set<UUID> employeeIds,
-        UUID lunchId,
-        UUID dinnerId,
         Boolean isCompleted
 ) {
 }

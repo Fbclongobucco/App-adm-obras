@@ -3,8 +3,8 @@ package com.longobuccodev.app_adm_obras.infra.adapters.repository;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
-import com.longobuccodev.app_adm_obras.core.domain.Meal;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
+import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.repository.Page;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
@@ -16,6 +16,7 @@ import com.longobuccodev.app_adm_obras.infra.repositories.CostCenterJpaRepositor
 import com.longobuccodev.app_adm_obras.infra.repositories.EmployeeJpaRepository;
 import com.longobuccodev.app_adm_obras.infra.repositories.MealJpaRepository;
 import com.longobuccodev.app_adm_obras.infra.repositories.ProjectJpaRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,10 @@ import java.util.UUID;
 
 @Repository
 public class ProjectRepositoryAdapter implements ProjectRepository {
+
+    /** Campos pesquisaveis da listagem (busca q). */
+    private static final List<String> SEARCH_TEXT = List.of("os", "description", "client.name");
+    private static final List<String> SEARCH_DIGITS = List.of();
 
     // Campo de ordenacao do dominio -> propriedade de ProjectEntity
     private static final Map<String, String> SORT_PROPERTIES = Map.of(
@@ -84,9 +89,11 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Project> findAll(PageRequest request) {
-        return SpringPageSupport.toDomain(
-                jpaRepository.findAll(SpringPageSupport.toPageable(request, SORT_PROPERTIES)), this::toDomain);
+    public Page<Project> findAll(PageRequest request, SearchTerm term) {
+        Pageable pageable = SpringPageSupport.toPageable(request, SORT_PROPERTIES);
+        return SpringPageSupport.toDomain(term.isNone()
+                ? jpaRepository.findAll(pageable)
+                : jpaRepository.findAll(SearchSpecification.of(term, SEARCH_TEXT, SEARCH_DIGITS), pageable), this::toDomain);
     }
 
     @Override
@@ -178,8 +185,6 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
         if (entity == null) {
             return null;
         }
-        return ProjectEntityMapper.toDomain(entity,
-                mealJpaRepository.findFirstByProjectIdAndMealType(entity.getId(), Meal.MealType.LUNCH).orElse(null),
-                mealJpaRepository.findFirstByProjectIdAndMealType(entity.getId(), Meal.MealType.DINNER).orElse(null));
+        return ProjectEntityMapper.toDomain(entity, mealJpaRepository.findByProjectId(entity.getId()));
     }
 }

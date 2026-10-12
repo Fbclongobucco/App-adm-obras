@@ -5,6 +5,7 @@ import com.longobuccodev.app_adm_obras.application.dto.client.ClientResponseDTO;
 import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.usecase.ClientUseCase;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -37,8 +38,11 @@ public class ClientController {
     @GetMapping
     public ResponseEntity<PageResponseDTO<ClientResponseDTO>> findAll(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(clientUseCase.findAll(new PageRequest(page, size)));
+            @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Busca sem diferenciar maiusculas nem acentos em nome, e-mail e cidade. "
+                    + "Ate 100 caracteres (400 page.invalid.query).")
+            @RequestParam(required = false) String q) {
+        return ResponseEntity.ok(clientUseCase.findAll(new PageRequest(page, size), q));
     }
 
     @GetMapping("/by-project/{projectId}")

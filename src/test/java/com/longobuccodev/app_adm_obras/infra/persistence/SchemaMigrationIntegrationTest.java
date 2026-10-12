@@ -32,7 +32,7 @@ class SchemaMigrationIntegrationTest {
     @DisplayName("banco vazio deve receber todas as migracoes, e as entidades devem bater com o schema")
     void emptyDatabaseShouldBeMigratedAndMatchEntities() {
         assertThat(flyway.info().pending()).isEmpty();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("3");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("8");
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from information_schema.tables where table_name = 'refresh_token'", Integer.class))
                 .isEqualTo(1);
@@ -53,9 +53,9 @@ class SchemaMigrationIntegrationTest {
     @Test
     @DisplayName("refeicao sem restaurante nem obra deve ser rejeitada pelo banco (V3)")
     void mealWithoutRestaurantShouldBeRejected() {
-        assertThatThrownBy(() -> jdbcTemplate.update("insert into meal (id, meal_type, date, price, quantity, "
-                + "total_price, is_billed, created_at, updated_at) values (random_uuid(), 'LUNCH', current_date, "
-                + "10, 1, 10, false, current_timestamp, current_timestamp)"))
+        assertThatThrownBy(() -> jdbcTemplate.update("insert into meal (id, meal_type, lunch_quantity, "
+                + "lunch_price, lunch_slot, is_billed, created_at, updated_at) values (random_uuid(), 'LUNCH', 1, "
+                + "10, true, false, current_timestamp, current_timestamp)"))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 }

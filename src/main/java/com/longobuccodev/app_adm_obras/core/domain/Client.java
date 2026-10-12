@@ -119,8 +119,12 @@ public class Client extends Audited {
         return normalized;
     }
 
+    /** Opcional: nulo ou em branco vira {@code null}; informado, precisa ter formato valido. */
     private static String validateEmail(String email) {
-        if (email == null || !EMAIL_PATTERN.matcher(email.strip()).matches()) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        if (!EMAIL_PATTERN.matcher(email.strip()).matches()) {
             throw InvalidClientException.invalidEmail(email);
         }
         return email.strip().toLowerCase();

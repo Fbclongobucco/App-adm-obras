@@ -130,6 +130,17 @@ class EmployeeTest {
     }
 
     @Test
+    void shouldAcceptMissingEmailAsNull() {
+        Employee employee = newEmployee();
+
+        employee.setEmail(null);
+        assertThat(employee.getEmail()).isNull();
+
+        employee.setEmail("");
+        assertThat(employee.getEmail()).isNull();
+    }
+
+    @Test
     void shouldRejectCpfWithWrongCheckDigits() {
         Employee employee = newEmployee();
 

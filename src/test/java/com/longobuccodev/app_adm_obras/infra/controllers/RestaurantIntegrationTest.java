@@ -133,8 +133,8 @@ class RestaurantIntegrationTest {
         assertThat(meal.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(((Map) meal.getBody().get("restaurant")).get("id")).isEqualTo(restaurantId);
         assertThat(((Map) meal.getBody().get("project")).get("id")).isEqualTo(projectId);
-        Map lunch = (Map) api.get("/api/projects/" + projectId).getBody().get("lunch");
-        assertThat(lunch.get("id")).isEqualTo(meal.getBody().get("id"));
+        List<Map> meals = (List<Map>) api.get("/api/projects/" + projectId).getBody().get("meals");
+        assertThat(meals).extracting(item -> item.get("id")).containsExactly(meal.getBody().get("id"));
     }
 
     @Test
@@ -170,7 +170,7 @@ class RestaurantIntegrationTest {
     // --- obra ---
 
     @Test
-    @DisplayName("PUT de obra com refeicao de outra obra responde 400 e a refeicao nao se move")
+    @DisplayName("PUT de obra nao move refeicoes: lunchId de outra obra no corpo e ignorado")
     void projectUpdateDoesNotMoveMeals() {
         String projectA = api.createProject();
         Map<String, Object> projectBBody = api.projectBody(api.createCostCenter(), api.createClient());
@@ -181,13 +181,14 @@ class RestaurantIntegrationTest {
         projectBBody.put("lunchId", mealA);
         ResponseEntity<Map> response = api.put("/api/projects/" + projectB, projectBBody);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody()).containsEntry("errorCode", "project.invalid.meal");
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat((List) response.getBody().get("meals")).isEmpty();
+        assertThat(response.getBody()).doesNotContainKeys("lunch", "dinner");
         assertThat(((Map) api.get("/api/meals/" + mealA).getBody().get("project")).get("id")).isEqualTo(projectA);
     }
 
     @Test
-    @DisplayName("PUT de obra sem lunchId e dinnerId deve manter almoco e janta")
+    @DisplayName("PUT de obra deve manter almoco e janta vinculados pelo restaurante")
     void projectUpdateWithoutMealIdsKeepsMeals() {
         Map<String, Object> projectBody = api.projectBody(api.createCostCenter(), api.createClient());
         String projectId = api.create("/api/projects", projectBody);
@@ -198,9 +199,8 @@ class RestaurantIntegrationTest {
         projectBody.put("description", "Alterada sem refeicoes no corpo");
         assertThat(api.put("/api/projects/" + projectId, projectBody).getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        Map project = api.get("/api/projects/" + projectId).getBody();
-        assertThat(((Map) project.get("lunch")).get("id")).isEqualTo(lunch);
-        assertThat(((Map) project.get("dinner")).get("id")).isEqualTo(dinner);
+        List<Map> meals = (List<Map>) api.get("/api/projects/" + projectId).getBody().get("meals");
+        assertThat(meals).extracting(item -> item.get("id")).containsExactly(lunch, dinner);
     }
 
     @Test
@@ -228,7 +228,7 @@ class RestaurantIntegrationTest {
         String restaurantId = api.create("/api/restaurants", restaurant);
         Map<String, Object> meal = api.mealBody(restaurantId, "LUNCH");
         String mealId = api.create("/api/meals", meal);
-        meal.put("quantity", 20);
+        meal.put("lunchQuantity", 20);
         api.put("/api/meals/" + mealId, meal);
         api.delete("/api/meals/" + mealId);
         restaurant.put("name", AdminApi.unique("Restaurante Alterado "));

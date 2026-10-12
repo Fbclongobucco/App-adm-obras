@@ -26,8 +26,8 @@ class AccommodationMapperTest {
     }
 
     private static AccommodationRequestDTO newRequest(AddressRequestDTO address) {
-        return new AccommodationRequestDTO(" Maria  Souza ", "(11) 98888-7777", address, 8, 30, true,
-                null, null, new BigDecimal("4500.00"));
+        return new AccommodationRequestDTO(" Maria  Souza ", "(11) 98888-7777", address, 8, true,
+                null, null, LocalDate.of(2026, 10, 12), new BigDecimal("4500.00"));
     }
 
     private static Employee newEmployee() {
@@ -57,7 +57,8 @@ class AccommodationMapperTest {
         assertThat(accommodation.getAddress().getState()).isEqualTo("SP");
         assertThat(accommodation.getAddress().getZipCode()).isEqualTo("01310100");
         assertThat(accommodation.getCapacity()).isEqualTo(8);
-        assertThat(accommodation.getDays()).isEqualTo(30);
+        assertThat(accommodation.getStartDate()).isEqualTo(LocalDate.of(2026, 10, 12));
+        assertThat(accommodation.getEndDate()).isEqualTo(LocalDate.of(2026, 11, 11));
         assertThat(accommodation.isContract()).isTrue();
         assertThat(accommodation.getEmployees()).containsExactly(employee);
         assertThat(accommodation.getTotalPrice()).isEqualByComparingTo("4500.00");

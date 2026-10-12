@@ -1,11 +1,13 @@
 package com.longobuccodev.app_adm_obras.infra.adapters.repository;
 
+import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.domain.User;
 import com.longobuccodev.app_adm_obras.core.repository.Page;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.core.repository.UserRepository;
 import com.longobuccodev.app_adm_obras.infra.adapters.mapper.UserEntityMapper;
 import com.longobuccodev.app_adm_obras.infra.repositories.UserJpaRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +16,10 @@ import java.util.UUID;
 
 @Repository
 public class UserRepositoryAdapter implements UserRepository {
+
+    /** Campos pesquisaveis da listagem (busca q). */
+    private static final List<String> SEARCH_TEXT = List.of("name", "email");
+    private static final List<String> SEARCH_DIGITS = List.of();
 
     private final UserJpaRepository jpaRepository;
 
@@ -47,9 +53,11 @@ public class UserRepositoryAdapter implements UserRepository {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<User> findAll(PageRequest request) {
-        return SpringPageSupport.toDomain(
-                jpaRepository.findAll(SpringPageSupport.toPageable(request)), UserEntityMapper::toDomain);
+    public Page<User> findAll(PageRequest request, SearchTerm term) {
+        Pageable pageable = SpringPageSupport.toPageable(request);
+        return SpringPageSupport.toDomain(term.isNone()
+                ? jpaRepository.findAll(pageable)
+                : jpaRepository.findAll(SearchSpecification.of(term, SEARCH_TEXT, SEARCH_DIGITS), pageable), UserEntityMapper::toDomain);
     }
 
     @Override

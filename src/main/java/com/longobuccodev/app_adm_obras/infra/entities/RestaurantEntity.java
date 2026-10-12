@@ -9,6 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
@@ -32,6 +33,12 @@ public class RestaurantEntity extends AuditedEntity {
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "project_id", nullable = false)
     private ProjectEntity project;
+
+    @Column(name = "delivery_fee", precision = 19, scale = 2)
+    private BigDecimal deliveryFee;
+
+    @Column(name = "soda_price", precision = 19, scale = 2)
+    private BigDecimal sodaPrice;
 
     public static RestaurantEntity create() {
         return new RestaurantEntity();
@@ -78,5 +85,21 @@ public class RestaurantEntity extends AuditedEntity {
 
     public void setProject(ProjectEntity project) {
         this.project = project;
+    }
+
+    public BigDecimal getDeliveryFee() {
+        return deliveryFee;
+    }
+
+    public void setDeliveryFee(BigDecimal deliveryFee) {
+        this.deliveryFee = deliveryFee;
+    }
+
+    public BigDecimal getSodaPrice() {
+        return sodaPrice;
+    }
+
+    public void setSodaPrice(BigDecimal sodaPrice) {
+        this.sodaPrice = sodaPrice;
     }
 }

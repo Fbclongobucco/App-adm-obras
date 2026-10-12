@@ -3,21 +3,21 @@ package com.longobuccodev.app_adm_obras.infra.repositories;
 import com.longobuccodev.app_adm_obras.core.domain.Meal.MealType;
 import com.longobuccodev.app_adm_obras.infra.entities.MealEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
-public interface MealJpaRepository extends JpaRepository<MealEntity, UUID> {
-
-    Optional<MealEntity> findFirstByProjectIdAndMealType(UUID projectId, MealType mealType);
+public interface MealJpaRepository extends JpaRepository<MealEntity, UUID>,
+        JpaSpecificationExecutor<MealEntity> {
 
     @Query("""
             SELECT meal FROM MealEntity meal
             WHERE meal.project.id = :projectId
+            ORDER BY meal.createdAt, meal.id
             """)
     List<MealEntity> findByProjectId(@Param("projectId") UUID projectId);
 
@@ -41,9 +41,12 @@ public interface MealJpaRepository extends JpaRepository<MealEntity, UUID> {
             """)
     List<MealEntity> findByEmployeeId(@Param("employeeId") UUID employeeId);
 
-    List<MealEntity> findByDate(LocalDate date);
-
-    List<MealEntity> findByDateBetween(LocalDate startDate, LocalDate endDate);
+    @Query("""
+            SELECT meal FROM MealEntity meal
+            WHERE meal.restaurant.id IN :restaurantIds
+            ORDER BY meal.createdAt, meal.id
+            """)
+    List<MealEntity> findByRestaurantIdIn(@Param("restaurantIds") Collection<UUID> restaurantIds);
 
     List<MealEntity> findByMealType(MealType mealType);
 

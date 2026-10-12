@@ -2,6 +2,7 @@ package com.longobuccodev.app_adm_obras.core.domain;
 
 import com.longobuccodev.app_adm_obras.core.exception.InvalidRestaurantException;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -18,13 +19,28 @@ public class Restaurant extends Audited {
     private String phone;
     private Address address;
     private Project project;
+    private BigDecimal deliveryFee;
+    private BigDecimal sodaPrice;
 
+    /** Restaurante sem taxa de entrega e sem refrigerante. */
     public Restaurant(UUID id, String name, String phone, Address address, Project project) {
+        this(id, name, phone, address, project, null);
+    }
+
+    /** Restaurante sem refrigerante. */
+    public Restaurant(UUID id, String name, String phone, Address address, Project project, BigDecimal deliveryFee) {
+        this(id, name, phone, address, project, deliveryFee, null);
+    }
+
+    public Restaurant(UUID id, String name, String phone, Address address, Project project, BigDecimal deliveryFee,
+                      BigDecimal sodaPrice) {
         setId(id);
         setName(name);
         setPhone(phone);
         setAddress(address);
         setProject(project);
+        setDeliveryFee(deliveryFee);
+        setSodaPrice(sodaPrice);
     }
 
     public UUID getId() {
@@ -68,6 +84,33 @@ public class Restaurant extends Audited {
             throw InvalidRestaurantException.missingProject();
         }
         this.project = project;
+    }
+
+    /** Taxa cobrada por entrega; {@code null} quando o restaurante nao cobra entrega. */
+    public BigDecimal getDeliveryFee() {
+        return deliveryFee;
+    }
+
+    public void setDeliveryFee(BigDecimal deliveryFee) {
+        if (deliveryFee != null && deliveryFee.compareTo(BigDecimal.ZERO) <= 0) {
+            throw InvalidRestaurantException.invalidDeliveryFee(deliveryFee);
+        }
+        this.deliveryFee = deliveryFee;
+    }
+
+    /**
+     * Preco unitario do refrigerante, 1 por entrega em todas as refeicoes do restaurante;
+     * {@code null} quando o restaurante nao fornece refrigerante.
+     */
+    public BigDecimal getSodaPrice() {
+        return sodaPrice;
+    }
+
+    public void setSodaPrice(BigDecimal sodaPrice) {
+        if (sodaPrice != null && sodaPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            throw InvalidRestaurantException.invalidSodaPrice(sodaPrice);
+        }
+        this.sodaPrice = sodaPrice;
     }
 
     @Override

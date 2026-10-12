@@ -7,6 +7,7 @@ import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundExc
 import com.longobuccodev.app_adm_obras.application.mapper.ClientMapper;
 import com.longobuccodev.app_adm_obras.application.mapper.PageMapper;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
+import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.exception.ConflictException;
 import com.longobuccodev.app_adm_obras.core.repository.ClientRepository;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
@@ -55,6 +56,11 @@ public class ClientUseCase {
         return PageMapper.toResponse(clientRepository.findAll(request), ClientMapper::toResponse);
     }
 
+    /** Listagem filtrada pelo termo de busca; vazio ou nulo nao filtra. */
+    public PageResponseDTO<ClientResponseDTO> findAll(PageRequest request, String query) {
+        return PageMapper.toResponse(clientRepository.findAll(request, SearchTerm.of(query)), ClientMapper::toResponse);
+    }
+
     public ClientResponseDTO update(UUID id, ClientRequestDTO dto) {
         Client existing = findClient(id);
         Client updated = ClientMapper.toDomain(existing, dto);
@@ -71,7 +77,11 @@ public class ClientUseCase {
         clientRepository.deleteById(id);
     }
 
+    /** E-mail e opcional: so o informado precisa ser unico. */
     private void requireUniqueEmail(Client client) {
+        if (client.getEmail() == null) {
+            return;
+        }
         Conflicts.requireUnique(clientRepository.findByEmail(client.getEmail()), Client::getId, client.getId(),
                 () -> ConflictException.duplicate("client", "email", client.getEmail()));
     }

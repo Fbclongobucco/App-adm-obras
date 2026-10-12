@@ -1,5 +1,5 @@
 @startuml
-' Schema conforme V1 (baseline), V2 (refresh_token) e V3 (auditoria e restaurante)
+' Schema conforme V1 (baseline), V2 (refresh_token), V3 (auditoria e restaurante), V4 (refeicoes por obra e e-mail opcional) V5 (taxa de entrega), V6 (refrigerante no restaurante) e V7 (ajustes por data da refeicao)
 !define Table(name,desc) class name as "desc" << (T,#FFAAAA) >>
 !define primary_key(x) <u>x</u>
 !define foreign_key(x) <color:red>x</color>
@@ -29,7 +29,7 @@ Table(cost_center, "cost_center") {
 Table(client, "client") {
   primary_key(id) UUID
   name VARCHAR
-  email VARCHAR UNIQUE
+  email VARCHAR UNIQUE <<nullable>>
   phone VARCHAR
   foreign_key(address_id) UUID <<FK>>
   created_at TIMESTAMPTZ
@@ -39,7 +39,7 @@ Table(client, "client") {
 Table(employee, "employee") {
   primary_key(id) UUID
   name VARCHAR
-  email VARCHAR UNIQUE
+  email VARCHAR UNIQUE <<nullable>>
   cpf VARCHAR(11) UNIQUE
   phone VARCHAR(11)
   birth_date DATE
@@ -69,9 +69,9 @@ Table(accommodation, "accommodation") {
   host_name VARCHAR
   host_phone VARCHAR(11)
   capacity INTEGER
-  days INTEGER
   is_contract BOOLEAN
-  total_price DECIMAL(19,2)
+  start_date DATE
+  monthly_price DECIMAL(19,2)
   foreign_key(address_id) UUID <<FK>>
   foreign_key(project_id) UUID <<FK>>
   created_at TIMESTAMPTZ
@@ -80,23 +80,41 @@ Table(accommodation, "accommodation") {
 
 Table(meal, "meal") {
   primary_key(id) UUID
-  price DECIMAL(19,2)
   is_billed BOOLEAN
-  meal_type VARCHAR
-  quantity INTEGER
-  date DATE
-  total_price DECIMAL(19,2)
+  meal_type VARCHAR (LUNCH, DINNER, LUNCH_AND_DINNER)
+  lunch_quantity INTEGER <<nullable>>
+  lunch_price DECIMAL(19,2) <<nullable>>
+  dinner_quantity INTEGER <<nullable>>
+  dinner_price DECIMAL(19,2) <<nullable>>
+  lunch_slot BOOLEAN <<TRUE ou NULL>>
+  dinner_slot BOOLEAN <<TRUE ou NULL>>
   created_at TIMESTAMPTZ
   updated_at TIMESTAMPTZ
   foreign_key(restaurant_id) UUID <<FK>>
   foreign_key(project_id) UUID <<FK>> copia da obra do restaurante
-  UNIQUE (project_id, meal_type)
+  UNIQUE (project_id, lunch_slot)
+  UNIQUE (project_id, dinner_slot)
+}
+
+Table(meal_adjustment, "meal_adjustment") {
+  primary_key(id) UUID
+  date DATE
+  type VARCHAR(20) (EXTRA_DAY, NO_SERVICE)
+  lunch_quantity INTEGER <<nullable>>
+  dinner_quantity INTEGER <<nullable>>
+  note VARCHAR(100) <<nullable>>
+  created_at TIMESTAMPTZ
+  updated_at TIMESTAMPTZ
+  foreign_key(meal_id) UUID <<FK, on delete cascade>>
+  UNIQUE (meal_id, date)
 }
 
 Table(restaurant, "restaurant") {
   primary_key(id) UUID
   name VARCHAR(100)
   phone VARCHAR(11)
+  delivery_fee DECIMAL(19,2) <<nullable>> taxa por entrega
+  soda_price DECIMAL(19,2) <<nullable>> refrigerante, 1 por entrega
   created_at TIMESTAMPTZ
   updated_at TIMESTAMPTZ
   foreign_key(address_id) UUID <<FK, nullable>>
@@ -106,6 +124,16 @@ Table(restaurant, "restaurant") {
 Table(project_employee, "project_employee") {
   foreign_key(project_id) UUID <<FK>>
   foreign_key(employee_id) UUID <<FK>>
+}
+
+Table(accommodation_period, "accommodation_period") {
+  primary_key(id) UUID
+  foreign_key(accommodation_id) UUID <<FK>>
+  start_date DATE
+  end_date DATE
+  price DECIMAL(19,2)
+  created_at TIMESTAMPTZ
+  updated_at TIMESTAMPTZ
 }
 
 Table(accommodation_employee, "accommodation_employee") {
@@ -142,6 +170,7 @@ Table(refresh_token, "refresh_token") {
 address "1" -- "0..*" client : has
 address "1" -- "0..*" employee : has
 address "1" -- "0..*" accommodation : has
+accommodation "1" -- "1..*" accommodation_period : has
 address "1" -- "0..1" restaurant : has
 
 cost_center "1" -- "0..*" employee : belongs_to
@@ -152,7 +181,8 @@ client "1" -- "0..*" project : has
 project "1" -- "0..*" accommodation : contains
 project "1" -- "0..*" restaurant : served_by
 restaurant "1" -- "0..*" meal : serves
-project "1" -- "0..2" meal : lunch_dinner
+project "1" -- "0..2" meal : uma cobertura de almoco e uma de jantar
+meal "1" -- "0..*" meal_adjustment : ajustes por data (um por data)
 project "0..*" -- "0..*" employee : project_employee
 (project, employee) .. project_employee
 accommodation "0..*" -- "0..*" employee : accommodation_employee

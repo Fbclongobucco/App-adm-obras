@@ -84,6 +84,20 @@ class ClientTest {
     }
 
     @Test
+    void shouldAcceptMissingEmailAsNull() {
+        Client client = newClient();
+
+        client.setEmail(null);
+        assertThat(client.getEmail()).isNull();
+
+        client.setEmail("   ");
+        assertThat(client.getEmail()).isNull();
+
+        client.setEmail(" Contato@Alfa.com ");
+        assertThat(client.getEmail()).isEqualTo("contato@alfa.com");
+    }
+
+    @Test
     void shouldRejectInvalidPhone() {
         Client client = newClient();
 

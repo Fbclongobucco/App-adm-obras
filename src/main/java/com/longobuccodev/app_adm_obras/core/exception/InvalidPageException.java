@@ -14,6 +14,11 @@ public class InvalidPageException extends CoreDomainException {
         return new InvalidPageException("page.invalid.size", "Page size must be between 1 and 100: " + size);
     }
 
+    public static InvalidPageException invalidQuery(int length) {
+        return new InvalidPageException("page.invalid.query",
+                "Search query must have at most 100 characters: " + length);
+    }
+
     public static InvalidPageException invalidSort(String sort) {
         return new InvalidPageException("page.invalid.sort", "Unsupported sort: " + sort);
     }

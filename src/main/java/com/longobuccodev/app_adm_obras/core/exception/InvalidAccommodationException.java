@@ -1,6 +1,7 @@
 package com.longobuccodev.app_adm_obras.core.exception;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public class InvalidAccommodationException extends CoreDomainException {
 
@@ -43,13 +44,6 @@ public class InvalidAccommodationException extends CoreDomainException {
         );
     }
 
-    public static InvalidAccommodationException invalidDays(Integer days) {
-        return new InvalidAccommodationException(
-                "accommodation.invalid.days",
-                "Accommodation days must be between 1 and 365: " + days
-        );
-    }
-
     public static InvalidAccommodationException missingEmployee() {
         return new InvalidAccommodationException(
                 "accommodation.invalid.employee",
@@ -57,10 +51,31 @@ public class InvalidAccommodationException extends CoreDomainException {
         );
     }
 
-    public static InvalidAccommodationException invalidTotalPrice(BigDecimal totalPrice) {
+    public static InvalidAccommodationException invalidStartDate() {
         return new InvalidAccommodationException(
-                "accommodation.invalid.total_price",
-                "Accommodation total price must not be negative: " + totalPrice
+                "accommodation.invalid.start_date",
+                "Accommodation start date must not be null"
+        );
+    }
+
+    public static InvalidAccommodationException invalidMonthlyPrice(BigDecimal monthlyPrice) {
+        return new InvalidAccommodationException(
+                "accommodation.invalid.monthly_price",
+                "Accommodation monthly price must be greater than zero: " + monthlyPrice
+        );
+    }
+
+    public static InvalidAccommodationException invalidRenewalEnd(LocalDate start, LocalDate end) {
+        return new InvalidAccommodationException(
+                "accommodation.invalid.renewal_end",
+                "Renewal end date must be on or after " + start + ": " + end
+        );
+    }
+
+    public static InvalidAccommodationException invalidRenewalPrice(BigDecimal price) {
+        return new InvalidAccommodationException(
+                "accommodation.invalid.renewal_price",
+                "Renewal price must be greater than zero: " + price
         );
     }
 }

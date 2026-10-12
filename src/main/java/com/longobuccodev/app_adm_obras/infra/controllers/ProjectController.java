@@ -42,8 +42,11 @@ public class ProjectController {
             @RequestParam(defaultValue = "20") int size,
             @Parameter(description = "Ordenacao no formato campo,direcao (asc|desc; padrao asc). "
                     + "Campos: updatedAt, createdAt, os, startDate. Ex.: updatedAt,desc")
-            @RequestParam(required = false) String sort) {
-        return ResponseEntity.ok(projectUseCase.findAll(new PageRequest(page, size), sort));
+            @RequestParam(required = false) String sort,
+            @Parameter(description = "Busca sem diferenciar maiusculas nem acentos em OS, descricao e nome do cliente. "
+                    + "Ate 100 caracteres (400 page.invalid.query).")
+            @RequestParam(required = false) String q) {
+        return ResponseEntity.ok(projectUseCase.findAll(new PageRequest(page, size), sort, q));
     }
 
     @GetMapping("/{id}")
@@ -53,10 +56,9 @@ public class ProjectController {
 
     @Operation(summary = "Substitui a obra",
             description = "Substituicao completa: employeeIds e accommodationIds omitidos ou nulos desfazem os "
-                    + "vinculos atuais; envie sempre a lista completa. lunchId e dinnerId apenas confirmam uma "
-                    + "refeicao que ja pertence a obra pelo restaurante (tipo correspondente); nao movem refeicoes "
-                    + "e, se omitidos, as refeicoes atuais sao mantidas. Refeicao de outra obra responde 400 "
-                    + "project.invalid.meal.")
+                    + "vinculos atuais; envie sempre a lista completa. Refeicoes nao fazem parte da requisicao: "
+                    + "vinculam-se a obra pelo restaurante e sao mantidas. A resposta traz meals, com dailyPrice, "
+                    + "workingDays e totalPrice recalculados pelas datas novas da obra.")
     @PutMapping("/{id}")
     public ResponseEntity<ProjectResponseDTO> update(@PathVariable UUID id, @RequestBody ProjectRequestDTO dto) {
         return ResponseEntity.ok(projectUseCase.update(id, dto));
