@@ -102,6 +102,20 @@ Security notes:
 - Never commit `.env`. Use access tokens instead of passwords where possible.
 - The script does not echo secrets. Consider running `docker logout` after pushing if on a shared machine.
 
+## Deploy
+
+Checklist for a production release (verified on 2026-10-12 with PostgreSQL 16 and the Docker image):
+
+1. **Backup** the production database. Migration `V8` drops `accommodation.days` and `total_price`; rollback needs the backup.
+2. **Build and push** the image: `./scripts/docker-build-push.sh` (or `docker build -t <user>/app-adm-obras:<tag> .` and `docker push`). The build compiles inside the image (`maven:3.9-eclipse-temurin-25`); tests run before, with `./mvnw test`.
+3. **Environment** of the container: `SPRING_PROFILES_ACTIVE=prod`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `APP_JWT_SECRET` (new, Base64 >= 32 bytes) and `APP_CORS_ALLOWED_ORIGINS` (frontend URL). Optional: `JAVA_OPTS`, `APP_REFRESH_COOKIE_SAME_SITE`.
+4. **Start**: Flyway applies `V1`..`V8` (or the missing ones) before the API serves requests; the log shows `Schema "public" is up to date` or `Successfully applied`.
+5. **First admin** (empty database only): start once with `APP_BOOTSTRAP_ENABLED=true`, `APP_BOOTSTRAP_ADMIN_EMAIL` and a strong `APP_BOOTSTRAP_ADMIN_PASSWORD`; the log shows `Usuario bootstrap criado`. Log in, then restart with `APP_BOOTSTRAP_ENABLED=false` and without the password.
+6. **Frontend together**: the accommodation and meal contracts changed (BREAKING); deploy the matching frontend branch at the same time.
+7. **Smoke test**: `POST /api/auth/login`, then `GET /api/projects` and `GET /api/accommodations` with the token. Swagger (`/v3/api-docs`) answers 404 in prod by design.
+
+The container runs as the non-root user `appuser` (uid 1001) and listens on 8080.
+
 ## Database schema documentation
 
 The Entity-Relationship Diagram (ERD) is available at the repository root:
@@ -146,7 +160,7 @@ Both paths are public where enabled. Calls to `/api/**` made from the UI follow 
 2. Click **Authorize** and paste the access token (Bearer).
 3. Run the request. Without a token, protected routes return 401. The token expires after 15 minutes; log in again to get a new one (refresh is not available from the UI, because its origin is not a frontend origin).
 
-In the `local` and `test` profiles the admin user `admin@admin.com` / `admin123` is created on startup (configurable with `APP_BOOTSTRAP_ADMIN_*`; set `APP_BOOTSTRAP_ENABLED=false` to skip it). It is never created in `prod`.
+In the `local` and `test` profiles the admin user `admin@admin.com` / `admin123` is created on startup (configurable with `APP_BOOTSTRAP_ADMIN_*`; set `APP_BOOTSTRAP_ENABLED=false` to skip it). The `prod` profile disables the bootstrap, but environment variables override it: see "First admin" in [Deploy](#deploy).
 
 Documentation is disabled by default (`springdoc.api-docs.enabled` / `springdoc.swagger-ui.enabled` in `application.properties`); a new profile only exposes it if it enables both properties explicitly.
 

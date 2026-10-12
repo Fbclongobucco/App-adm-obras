@@ -2,11 +2,12 @@
 
 FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /app
+# Usa o Maven da imagem (o .dockerignore exclui .mvn e mvnw). Dependencias numa camada propria:
+# so baixam de novo quando o pom.xml muda.
 COPY pom.xml .
+RUN mvn -q -B dependency:go-offline
 COPY src ./src
-COPY .mvn ./.mvn
-COPY mvnw .
-RUN chmod +x mvnw && ./mvnw -DskipTests package
+RUN mvn -q -B -DskipTests package
 
 FROM eclipse-temurin:25-jre
 WORKDIR /app
