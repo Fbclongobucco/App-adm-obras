@@ -86,18 +86,33 @@ public class SecurityConfig {
         return decoder;
     }
 
+    /**
+     * Autenticacao (login, refresh e logout usam o cookie do refresh token): so as origens listadas, com
+     * credenciais. Demais rotas (Bearer no cabecalho): qualquer origem, sem credenciais. A primeira
+     * configuracao que casa vale, por isso /api/auth/** e registrada antes.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource(CorsProperties properties) {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(properties.allowedOrigins());
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
+        CorsConfiguration auth = baseCors();
+        auth.setAllowedOrigins(properties.allowedOrigins());
+        auth.setAllowCredentials(true);
+
+        CorsConfiguration api = baseCors();
+        api.setAllowedOriginPatterns(List.of("*"));
+        api.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", configuration);
+        source.registerCorsConfiguration("/api/auth/**", auth);
+        source.registerCorsConfiguration("/api/**", api);
         return source;
+    }
+
+    private static CorsConfiguration baseCors() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setMaxAge(3600L);
+        return configuration;
     }
 
     private static JwtAuthenticationConverter jwtAuthenticationConverter() {

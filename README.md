@@ -17,7 +17,7 @@ All configuration is provided via environment variables. See `.env.example` for 
 Key variables:
 - `SPRING_PROFILES_ACTIVE`: Application profile (default: local)
 - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`: Database connection (required for prod profile)
-- `APP_CORS_ALLOWED_ORIGINS`: Allowed CORS origins (explicit list; `*` is rejected at startup)
+- `APP_CORS_ALLOWED_ORIGINS`: Origins allowed on `/api/auth/**` (login, refresh, logout), with credentials (explicit list; `*` is rejected at startup). All other `/api/**` routes accept any origin without credentials (Bearer token in the header).
 - `APP_JWT_SECRET`: Access token signing secret, Base64 with at least 32 bytes (required for prod profile; generate with `openssl rand -base64 32`)
 - `APP_REFRESH_COOKIE_SAME_SITE`: Refresh token cookie `SameSite` policy: `Strict` (default), `Lax` or `None`
 - `APP_REFRESH_COOKIE_SECURE`: Refresh token cookie `Secure` flag (default `true`; always `true` in prod)

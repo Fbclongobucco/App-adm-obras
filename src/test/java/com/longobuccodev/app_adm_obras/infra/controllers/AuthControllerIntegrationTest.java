@@ -361,7 +361,7 @@ class AuthControllerIntegrationTest {
     // --- CORS ---
 
     @Test
-    @DisplayName("CORS deve liberar o frontend Next.js com credenciais")
+    @DisplayName("CORS das rotas de negocio libera a origem do frontend, sem credenciais")
     void corsShouldAllowNextJsOrigin() {
         HttpHeaders headers = bearer(accessToken(ADMIN_EMAIL, ADMIN_PASSWORD));
         headers.setOrigin(FRONTEND_ORIGIN);
@@ -371,7 +371,7 @@ class AuthControllerIntegrationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getAccessControlAllowOrigin()).isEqualTo(FRONTEND_ORIGIN);
-        assertThat(response.getHeaders().getAccessControlAllowCredentials()).isTrue();
+        assertThat(response.getHeaders().getAccessControlAllowCredentials()).isFalse();
     }
 
     @Test
@@ -390,15 +390,44 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("CORS de origem nao liberada nao deve receber cabecalho de permissao")
-    void corsShouldNotAllowUnknownOrigin() {
+    @DisplayName("CORS das rotas de negocio libera qualquer origem, sem credenciais")
+    void corsShouldAllowAnyOriginWithoutCredentials() {
         HttpHeaders headers = bearer(accessToken(ADMIN_EMAIL, ADMIN_PASSWORD));
-        headers.setOrigin("http://origem-malvada.example.com");
+        headers.setOrigin("http://integracao.example.com");
 
         ResponseEntity<String> response = restTemplate.exchange("/api/users", HttpMethod.GET,
                 new HttpEntity<>(headers), String.class);
 
+        assertThat(response.getHeaders().getAccessControlAllowOrigin()).isEqualTo("http://integracao.example.com");
+        assertThat(response.getHeaders().getAccessControlAllowCredentials()).isFalse();
+    }
+
+    @Test
+    @DisplayName("CORS da autenticacao nao libera origem fora da lista")
+    void corsShouldNotAllowUnknownOriginOnAuth() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setOrigin("http://origem-malvada.example.com");
+        headers.setAccessControlRequestMethod(HttpMethod.POST);
+        headers.setAccessControlRequestHeaders(List.of("content-type"));
+
+        ResponseEntity<String> response = restTemplate.exchange("/api/auth/refresh", HttpMethod.OPTIONS,
+                new HttpEntity<>(headers), String.class);
+
         assertThat(response.getHeaders().getAccessControlAllowOrigin()).isNull();
+    }
+
+    @Test
+    @DisplayName("CORS da autenticacao libera a origem listada com credenciais")
+    void corsShouldAllowListedOriginWithCredentialsOnAuth() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setOrigin(FRONTEND_ORIGIN);
+        headers.setAccessControlRequestMethod(HttpMethod.POST);
+
+        ResponseEntity<String> response = restTemplate.exchange("/api/auth/login", HttpMethod.OPTIONS,
+                new HttpEntity<>(headers), String.class);
+
+        assertThat(response.getHeaders().getAccessControlAllowOrigin()).isEqualTo(FRONTEND_ORIGIN);
+        assertThat(response.getHeaders().getAccessControlAllowCredentials()).isTrue();
     }
 
     // --- helpers ---
