@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -31,15 +32,13 @@ class RefreshOriginFilterTest {
     private AuthUseCase authUseCase;
 
     @Test
-    @DisplayName("refresh e logout sem Origin devem responder 403 sem chegar ao controller")
-    void missingOriginShouldBeForbidden() throws Exception {
-        mockMvc.perform(post("/api/auth/refresh"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.errorCode").value("auth.origin.forbidden"));
-        mockMvc.perform(post("/api/auth/logout")).andExpect(status().isForbidden());
+    @DisplayName("sem Origin (cliente que nao e navegador) a requisicao passa pelo filtro e chega ao controller")
+    void missingOriginShouldPass() throws Exception {
+        // Refresh sem Origin e coberto ponta a ponta em AuthControllerIntegrationTest
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(result -> assertThat(result.getResponse().getStatus()).isNotEqualTo(403));
 
-        verify(authUseCase, never()).refresh(any());
-        verify(authUseCase, never()).logout(any());
+        verify(authUseCase).logout(any());
     }
 
     @Test

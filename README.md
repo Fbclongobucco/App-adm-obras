@@ -44,7 +44,7 @@ Flow:
 Frontend requirements:
 - Keep the access token in memory only.
 - Call `/api/auth/*` with `credentials: 'include'` so the browser sends and stores the cookie.
-- `refresh` and `logout` require an `Origin` header listed in `APP_CORS_ALLOWED_ORIGINS`; otherwise they return 403. Browsers send it automatically; other clients (curl, scripts) must send it explicitly.
+- `refresh` and `logout` reject an `Origin` header that is not listed in `APP_CORS_ALLOWED_ORIGINS` (403 `auth.origin.forbidden`). Requests without `Origin` are accepted: browsers always send it on cross-site POST, so a request without it is not a browser and cannot carry someone else's cookie. Server-side clients (the Next.js frontend, curl) need no `Origin`, so the frontend can be deployed at any address without matching configuration.
 - Serialize refresh calls: only one refresh in flight at a time, other requests wait for it. Presenting a refresh token that was already used is treated as theft and revokes the whole session, so two tabs refreshing with the same cookie log the user out.
 
 Sessions end early when:

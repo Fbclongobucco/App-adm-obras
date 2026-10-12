@@ -15,7 +15,9 @@ import java.util.Set;
 
 /**
  * Refresh e logout sao autenticados pelo cookie, que o navegador envia sozinho.
- * Exigir uma origem permitida impede que outro site dispare essas rotas.
+ * Origem presente e fora da lista e recusada: impede que outro site dispare essas rotas (CSRF).
+ * Sem Origin a requisicao passa: navegadores sempre enviam Origin em POST entre sites, entao quem
+ * omite nao e navegador e nao carrega o cookie de outra pessoa (ex.: o servidor do front Next).
  */
 public class RefreshOriginFilter extends OncePerRequestFilter {
 
@@ -36,7 +38,8 @@ public class RefreshOriginFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        if (corsProperties.allows(request.getHeader(HttpHeaders.ORIGIN))) {
+        String origin = request.getHeader(HttpHeaders.ORIGIN);
+        if (origin == null || corsProperties.allows(origin)) {
             chain.doFilter(request, response);
             return;
         }

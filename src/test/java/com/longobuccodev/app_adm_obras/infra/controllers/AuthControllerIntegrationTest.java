@@ -303,7 +303,7 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("refresh e logout de origem nao permitida ou sem Origin devem responder 403 sem efeito")
+    @DisplayName("refresh e logout de origem nao permitida devem responder 403 sem efeito; sem Origin renovam")
     void foreignOriginShouldBeForbidden() {
         String refreshToken = refreshTokenOf(postLogin(ADMIN_EMAIL, ADMIN_PASSWORD));
 
@@ -311,15 +311,13 @@ class AuthControllerIntegrationTest {
                 "https://site-malicioso.example.com");
         ResponseEntity<String> foreignLogout = postWithCookieRaw("/api/auth/logout", refreshToken,
                 "https://site-malicioso.example.com");
-        ResponseEntity<String> noOrigin = postWithCookieRaw("/api/auth/refresh", refreshToken, null);
 
         assertThat(foreignRefresh.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(foreignLogout.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(noOrigin.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(foreignRefresh.getHeaders().get(HttpHeaders.SET_COOKIE)).isNull();
-        // o token nao foi consumido nem revogado
-        assertThat(postWithCookie("/api/auth/refresh", refreshToken, FRONTEND_ORIGIN).getStatusCode())
-                .isEqualTo(HttpStatus.OK);
+        // o token nao foi consumido nem revogado: o servidor do front renova sem Origin
+        ResponseEntity<String> noOrigin = postWithCookieRaw("/api/auth/refresh", refreshToken, null);
+        assertThat(noOrigin.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     // --- usuarios e senha ---
