@@ -24,6 +24,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -36,11 +37,14 @@ class AuthUseCaseTest {
 
     private static final Instant LOGIN_TIME = Instant.parse("2026-10-11T12:00:00Z");
     private static final Duration REFRESH_TTL = Duration.ofDays(7);
+    private static final Duration REUSE_GRACE = Duration.ofSeconds(30);
 
     private MutableClock clock;
     private InMemoryRefreshTokenRepository tokens;
     private UserRepository users;
     private User user;
+    private AuthenticationGateway gateway;
+    private AccessTokenIssuer issuer;
     private AuthUseCase useCase;
 
     @BeforeEach
@@ -52,7 +56,7 @@ class AuthUseCaseTest {
         user.addRole(Role.ADMIN);
         when(users.findById(user.getId())).thenAnswer(invocation -> user);
 
-        AuthenticationGateway gateway = mock(AuthenticationGateway.class);
+        gateway = mock(AuthenticationGateway.class);
         when(gateway.authenticate(any(), any())).thenAnswer(invocation -> {
             if ("ana@email.com".equals(invocation.getArgument(0)) && "senha123".equals(invocation.getArgument(1))) {
                 return user;
@@ -61,10 +65,14 @@ class AuthUseCaseTest {
         });
 
         // Emissor falso: o valor expoe as roles para os testes verificarem o que foi emitido
-        AccessTokenIssuer issuer = u -> new AccessTokenIssuer.IssuedAccessToken(
+        issuer = u -> new AccessTokenIssuer.IssuedAccessToken(
                 "token-" + u.getRoles(), clock.instant(), clock.instant().plus(Duration.ofMinutes(15)));
 
-        useCase = new AuthUseCase(gateway, users, tokens, issuer, new RefreshTokenFactory(), REFRESH_TTL, clock);
+        useCase = useCaseWithGrace(REUSE_GRACE);
+    }
+
+    private AuthUseCase useCaseWithGrace(Duration grace) {
+        return new AuthUseCase(gateway, users, tokens, issuer, new RefreshTokenFactory(), REFRESH_TTL, grace, clock);
     }
 
     private AuthResult login() {
@@ -123,10 +131,11 @@ class AuthUseCaseTest {
     }
 
     @Test
-    @DisplayName("reapresentar token ja trocado deve revogar a familia, inclusive o mais novo")
+    @DisplayName("reapresentar token ja trocado apos a janela deve revogar a familia, inclusive o mais novo")
     void replayShouldRevokeFamily() {
         AuthResult first = login();
         AuthResult second = useCase.refresh(first.refreshToken());
+        clock.advance(REUSE_GRACE.plusSeconds(1));
 
         assertThatThrownBy(() -> useCase.refresh(first.refreshToken()))
                 .isInstanceOf(AuthenticationFailedException.class);
@@ -141,11 +150,109 @@ class AuthUseCaseTest {
         AuthResult sessionA = login();
         AuthResult sessionB = login();
         useCase.refresh(sessionA.refreshToken());
+        clock.advance(REUSE_GRACE.plusSeconds(1));
 
         assertThatThrownBy(() -> useCase.refresh(sessionA.refreshToken()))
                 .isInstanceOf(AuthenticationFailedException.class);
 
         assertThat(useCase.refresh(sessionB.refreshToken()).response().accessToken()).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("reuso dentro da janela deve emitir novo par sem revogar a sessao")
+    void replayWithinGraceShouldIssueSibling() {
+        AuthResult first = login();
+        AuthResult second = useCase.refresh(first.refreshToken());
+        clock.advance(Duration.ofSeconds(2));
+
+        AuthResult sibling = useCase.refresh(first.refreshToken());
+
+        assertThat(sibling.refreshToken()).isNotEqualTo(second.refreshToken());
+        assertThat(sibling.refreshTokenExpiresAt()).isEqualTo(first.refreshTokenExpiresAt());
+        assertThat(tokens.all()).noneMatch(t -> t.getRevokeReason() == RevokeReason.REUSE);
+        assertThat(useCase.refresh(second.refreshToken()).response().accessToken()).isNotBlank();
+        assertThat(useCase.refresh(sibling.refreshToken()).response().accessToken()).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("reuso no limite da janela ainda deve renovar")
+    void replayAtGraceLimitShouldIssueSibling() {
+        AuthResult first = login();
+        useCase.refresh(first.refreshToken());
+        clock.advance(REUSE_GRACE);
+
+        assertThat(useCase.refresh(first.refreshToken()).refreshToken()).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("disputa no mesmo instante deve renovar as duas requisicoes")
+    void concurrentRotationShouldIssueSibling() {
+        AuthResult first = login();
+        // Outra requisicao troca o token entre a leitura e a marcacao desta
+        tokens.beforeMarkRotated = token -> {
+            token.revoke(RevokeReason.ROTATED, clock.instant());
+            tokens.save(token.successor("hash-da-outra-requisicao", clock.instant()));
+        };
+
+        AuthResult result = useCase.refresh(first.refreshToken());
+
+        assertThat(result.refreshToken()).isNotBlank();
+        assertThat(tokens.byFamily(tokens.all().getFirst().getFamilyId())).hasSize(3);
+        assertThat(tokens.all()).noneMatch(t -> t.getRevokeReason() == RevokeReason.REUSE);
+    }
+
+    @Test
+    @DisplayName("janela zero deve revogar a familia em qualquer reuso")
+    void zeroGraceShouldRevokeOnAnyReplay() {
+        useCase = useCaseWithGrace(Duration.ZERO);
+        AuthResult first = login();
+        AuthResult second = useCase.refresh(first.refreshToken());
+        clock.advance(Duration.ofSeconds(1));
+
+        assertThatThrownBy(() -> useCase.refresh(first.refreshToken()))
+                .isInstanceOf(AuthenticationFailedException.class);
+        assertThatThrownBy(() -> useCase.refresh(second.refreshToken()))
+                .isInstanceOf(AuthenticationFailedException.class);
+    }
+
+    @Test
+    @DisplayName("reuso dentro da janela apos logout deve falhar sem emitir token")
+    void replayAfterLogoutShouldFail() {
+        AuthResult first = login();
+        AuthResult second = useCase.refresh(first.refreshToken());
+        useCase.logout(second.refreshToken());
+        int before = tokens.all().size();
+
+        assertThatThrownBy(() -> useCase.refresh(first.refreshToken()))
+                .isInstanceOf(AuthenticationFailedException.class);
+        assertThat(tokens.all()).hasSize(before);
+    }
+
+    @Test
+    @DisplayName("reuso dentro da janela apos a expiracao da sessao deve falhar sem emitir token")
+    void replayAfterExpiryShouldFail() {
+        AuthResult first = login();
+        clock.advance(REFRESH_TTL.minusSeconds(5));
+        useCase.refresh(first.refreshToken());
+        clock.advance(Duration.ofSeconds(10));
+        int before = tokens.all().size();
+
+        assertThatThrownBy(() -> useCase.refresh(first.refreshToken()))
+                .isInstanceOf(AuthenticationFailedException.class);
+        assertThat(tokens.all()).hasSize(before);
+    }
+
+    @Test
+    @DisplayName("reuso dentro da janela com usuario inativo deve falhar e revogar a familia")
+    void replayWithinGraceWithInactiveUserShouldFail() {
+        AuthResult first = login();
+        useCase.refresh(first.refreshToken());
+        user.setActive(false);
+
+        assertThatThrownBy(() -> useCase.refresh(first.refreshToken()))
+                .isInstanceOf(AuthenticationFailedException.class);
+        assertThat(tokens.all()).allMatch(RefreshToken::isRevoked);
+        assertThat(tokens.all()).anyMatch(t -> t.getRevokeReason() == RevokeReason.USER_CHANGED);
     }
 
     @Test
@@ -246,6 +353,8 @@ class AuthUseCaseTest {
     static final class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
 
         private final List<RefreshToken> tokens = new ArrayList<>();
+        /** Simula outra requisicao agindo entre a leitura e a marcacao do token. */
+        Consumer<RefreshToken> beforeMarkRotated = token -> { };
 
         List<RefreshToken> all() {
             return tokens;
@@ -269,11 +378,18 @@ class AuthUseCaseTest {
         @Override
         public boolean markRotatedIfActive(UUID id, Instant now) {
             RefreshToken token = tokens.stream().filter(t -> t.getId().equals(id)).findFirst().orElseThrow();
+            beforeMarkRotated.accept(token);
             if (token.isRevoked()) {
                 return false;
             }
             token.revoke(RevokeReason.ROTATED, now);
             return true;
+        }
+
+        @Override
+        public boolean isFamilyClosed(UUID familyId) {
+            return byFamily(familyId).stream()
+                    .anyMatch(t -> t.isRevoked() && t.getRevokeReason() != RevokeReason.ROTATED);
         }
 
         @Override

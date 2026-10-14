@@ -18,6 +18,12 @@ public interface RefreshTokenRepository {
      */
     boolean markRotatedIfActive(UUID id, Instant now);
 
+    /**
+     * Indica se a sessao (familia) foi encerrada: algum token dela revogado
+     * por motivo diferente de troca (logout, reuso, usuario alterado).
+     */
+    boolean isFamilyClosed(UUID familyId);
+
     void revokeFamily(UUID familyId, RevokeReason reason, Instant now);
 
     void revokeAllByUser(UUID userId, RevokeReason reason, Instant now);

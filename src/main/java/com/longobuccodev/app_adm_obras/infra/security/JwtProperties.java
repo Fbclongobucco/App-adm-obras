@@ -6,7 +6,8 @@ import java.time.Duration;
 import java.util.Base64;
 
 @ConfigurationProperties(prefix = "app.security.jwt")
-public record JwtProperties(String issuer, String secret, Duration accessTokenTtl, Duration refreshTokenTtl) {
+public record JwtProperties(String issuer, String secret, Duration accessTokenTtl, Duration refreshTokenTtl,
+                            Duration refreshReuseGrace) {
 
     static final String SECRET_VARIABLE = "APP_JWT_SECRET";
     static final int MIN_SECRET_BYTES = 32;
@@ -15,12 +16,19 @@ public record JwtProperties(String issuer, String secret, Duration accessTokenTt
         issuer = issuer == null || issuer.isBlank() ? "app-adm-obras" : issuer.strip();
         accessTokenTtl = accessTokenTtl == null ? Duration.ofMinutes(15) : accessTokenTtl;
         refreshTokenTtl = refreshTokenTtl == null ? Duration.ofDays(7) : refreshTokenTtl;
+        refreshReuseGrace = refreshReuseGrace == null ? Duration.ofSeconds(30) : refreshReuseGrace;
         if (accessTokenTtl.isNegative() || accessTokenTtl.isZero()) {
             throw new IllegalStateException("app.security.jwt.access-token-ttl must be positive");
         }
         if (refreshTokenTtl.compareTo(accessTokenTtl) <= 0) {
             throw new IllegalStateException(
                     "app.security.jwt.refresh-token-ttl must be greater than app.security.jwt.access-token-ttl");
+        }
+        // Janela maior que o access token deixaria passar o reuso de um token de um ciclo anterior
+        if (refreshReuseGrace.isNegative() || refreshReuseGrace.compareTo(accessTokenTtl) >= 0) {
+            throw new IllegalStateException(
+                    "app.security.jwt.refresh-reuse-grace must be zero or positive and less than "
+                            + "app.security.jwt.access-token-ttl");
         }
         decode(secret);
     }

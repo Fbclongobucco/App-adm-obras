@@ -1,5 +1,6 @@
 package com.longobuccodev.app_adm_obras.infra.controllers;
 
+import com.longobuccodev.app_adm_obras.application.security.RefreshTokenFactory;
 import com.longobuccodev.app_adm_obras.core.domain.User.Role;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -21,6 +23,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
@@ -44,6 +47,12 @@ class AuthControllerIntegrationTest {
 
     @Autowired
     private JwtEncoder jwtEncoder;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private RefreshTokenFactory refreshTokenFactory;
 
     // --- login ---
 
@@ -233,10 +242,13 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("reapresentar refresh token trocado deve revogar tambem o mais novo")
+    @DisplayName("reapresentar refresh token trocado apos a janela deve revogar tambem o mais novo")
     void replayShouldRevokeChain() {
         String first = refreshTokenOf(postLogin(ADMIN_EMAIL, ADMIN_PASSWORD));
         String second = refreshTokenOf(postWithCookie("/api/auth/refresh", first, FRONTEND_ORIGIN));
+        // Simula a passagem do tempo: a troca de first fica 31 s no passado, fora da janela de 30 s
+        jdbcTemplate.update("update refresh_token set revoked_at = ? where token_hash = ?",
+                Timestamp.from(Instant.now().minusSeconds(31)), refreshTokenFactory.hash(first));
 
         ResponseEntity<Map> replay = postWithCookie("/api/auth/refresh", first, FRONTEND_ORIGIN);
         ResponseEntity<Map> afterReplay = postWithCookie("/api/auth/refresh", second, FRONTEND_ORIGIN);
@@ -244,6 +256,23 @@ class AuthControllerIntegrationTest {
         assertThat(replay.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(replay.getBody()).containsEntry("errorCode", "auth.invalid.refresh");
         assertThat(afterReplay.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    @DisplayName("reapresentar refresh token trocado dentro da janela deve renovar sem derrubar a sessao")
+    void replayWithinGraceShouldKeepSession() {
+        String first = refreshTokenOf(postLogin(ADMIN_EMAIL, ADMIN_PASSWORD));
+        String second = refreshTokenOf(postWithCookie("/api/auth/refresh", first, FRONTEND_ORIGIN));
+
+        ResponseEntity<Map> replay = postWithCookie("/api/auth/refresh", first, FRONTEND_ORIGIN);
+
+        assertThat(replay.getStatusCode()).isEqualTo(HttpStatus.OK);
+        String sibling = refreshTokenOf(replay);
+        assertThat(sibling).isNotBlank().isNotEqualTo(first).isNotEqualTo(second);
+        assertThat(postWithCookie("/api/auth/refresh", second, FRONTEND_ORIGIN).getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+        assertThat(postWithCookie("/api/auth/refresh", sibling, FRONTEND_ORIGIN).getStatusCode())
+                .isEqualTo(HttpStatus.OK);
     }
 
     @Test

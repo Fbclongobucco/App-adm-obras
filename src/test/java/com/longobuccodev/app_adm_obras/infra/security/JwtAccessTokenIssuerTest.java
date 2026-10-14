@@ -24,7 +24,7 @@ class JwtAccessTokenIssuerTest {
     private static final Instant NOW = Instant.parse("2026-10-11T12:00:00Z");
 
     private final JwtProperties properties = new JwtProperties("app-adm-obras", JwtPropertiesTest.VALID_SECRET,
-            Duration.ofMinutes(15), Duration.ofDays(7));
+            Duration.ofMinutes(15), Duration.ofDays(7), null);
     private final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     private final SecurityConfig config = new SecurityConfig();
     private final JwtAccessTokenIssuer issuer =
@@ -92,7 +92,7 @@ class JwtAccessTokenIssuerTest {
     @Test
     @DisplayName("token de outro emissor deve ser rejeitado")
     void otherIssuerShouldBeRejected() {
-        JwtProperties other = new JwtProperties("outro-sistema", JwtPropertiesTest.VALID_SECRET, null, null);
+        JwtProperties other = new JwtProperties("outro-sistema", JwtPropertiesTest.VALID_SECRET, null, null, null);
         String value = new JwtAccessTokenIssuer(config.jwtEncoder(other), other, clock).issue(admin()).value();
 
         assertThatThrownBy(() -> decoder.decode(value)).isInstanceOf(JwtException.class);

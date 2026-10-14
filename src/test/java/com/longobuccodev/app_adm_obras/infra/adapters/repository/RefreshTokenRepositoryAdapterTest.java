@@ -87,6 +87,32 @@ class RefreshTokenRepositoryAdapterTest {
     }
 
     @Test
+    @DisplayName("isFamilyClosed deve considerar aberta a familia so com tokens trocados e ativos")
+    void familyWithRotatedAndActiveTokensIsOpen() {
+        RefreshToken first = saveToken("6".repeat(64));
+        adapter.markRotatedIfActive(first.getId(), NOW.plusSeconds(1));
+        adapter.save(first.successor("7".repeat(64), NOW.plusSeconds(1)));
+
+        assertThat(adapter.isFamilyClosed(first.getFamilyId())).isFalse();
+    }
+
+    @Test
+    @DisplayName("isFamilyClosed deve considerar fechada a familia revogada por logout, reuso ou usuario alterado")
+    void familyRevokedForOtherReasonsIsClosed() {
+        for (RevokeReason reason : new RevokeReason[]{RevokeReason.LOGOUT, RevokeReason.REUSE,
+                RevokeReason.USER_CHANGED}) {
+            String prefix = reason.name().substring(0, 1).toLowerCase();
+            RefreshToken first = saveToken(prefix + "8".repeat(63));
+            adapter.markRotatedIfActive(first.getId(), NOW.plusSeconds(1));
+            adapter.save(first.successor(prefix + "9".repeat(63), NOW.plusSeconds(1)));
+
+            adapter.revokeFamily(first.getFamilyId(), reason, NOW.plusSeconds(2));
+
+            assertThat(adapter.isFamilyClosed(first.getFamilyId())).as(reason.name()).isTrue();
+        }
+    }
+
+    @Test
     @DisplayName("revokeAllByUser deve revogar todos os tokens do usuario e preservar revogacoes anteriores")
     void revokeAllByUser() {
         RefreshToken rotated = saveToken("1".repeat(64));

@@ -39,6 +39,12 @@ public class RefreshTokenRepositoryAdapter implements RefreshTokenRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public boolean isFamilyClosed(UUID familyId) {
+        return jpaRepository.existsByFamilyIdAndRevokeReasonNot(familyId, RevokeReason.ROTATED);
+    }
+
+    @Override
     @Transactional
     public void revokeFamily(UUID familyId, RevokeReason reason, Instant now) {
         jpaRepository.revokeFamily(familyId, reason, now);

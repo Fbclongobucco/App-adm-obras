@@ -15,6 +15,8 @@ public interface RefreshTokenJpaRepository extends JpaRepository<RefreshTokenEnt
 
     Optional<RefreshTokenEntity> findByTokenHash(String tokenHash);
 
+    boolean existsByFamilyIdAndRevokeReasonNot(UUID familyId, RevokeReason revokeReason);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update RefreshTokenEntity t set t.revokedAt = :now, t.revokeReason = :reason "
             + "where t.id = :id and t.revokedAt is null")

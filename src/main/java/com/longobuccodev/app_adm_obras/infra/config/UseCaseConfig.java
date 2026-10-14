@@ -109,6 +109,6 @@ public class UseCaseConfig {
                                    RefreshTokenRepository refreshTokenRepository, AccessTokenIssuer accessTokenIssuer,
                                    RefreshTokenFactory refreshTokenFactory, JwtProperties jwtProperties, Clock clock) {
         return new AuthUseCase(authenticationGateway, userRepository, refreshTokenRepository, accessTokenIssuer,
-                refreshTokenFactory, jwtProperties.refreshTokenTtl(), clock);
+                refreshTokenFactory, jwtProperties.refreshTokenTtl(), jwtProperties.refreshReuseGrace(), clock);
     }
 }

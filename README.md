@@ -19,6 +19,7 @@ Key variables:
 - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`: Database connection (required for prod profile)
 - `APP_CORS_ALLOWED_ORIGINS`: Origins allowed on `/api/auth/**` (login, refresh, logout), with credentials (explicit list; `*` is rejected at startup). All other `/api/**` routes accept any origin without credentials (Bearer token in the header).
 - `APP_JWT_SECRET`: Access token signing secret, Base64 with at least 32 bytes (required for prod profile; generate with `openssl rand -base64 32`)
+- `APP_SECURITY_JWT_REFRESH_REUSE_GRACE`: Reuse grace window for refresh tokens (default `30s`; `0` disables it). Must be shorter than the access token lifetime. See Authentication.
 - `APP_REFRESH_COOKIE_SAME_SITE`: Refresh token cookie `SameSite` policy: `Strict` (default), `Lax` or `None`
 - `APP_REFRESH_COOKIE_SECURE`: Refresh token cookie `Secure` flag (default `true`; always `true` in prod)
 - `APP_REFRESH_COOKIE_PARTITIONED`: Adds the `Partitioned` attribute to the refresh token cookie (default `false`)
@@ -45,7 +46,8 @@ Frontend requirements:
 - Keep the access token in memory only.
 - Call `/api/auth/*` with `credentials: 'include'` so the browser sends and stores the cookie.
 - `refresh` and `logout` reject an `Origin` header that is not listed in `APP_CORS_ALLOWED_ORIGINS` (403 `auth.origin.forbidden`). Requests without `Origin` are accepted: browsers always send it on cross-site POST, so a request without it is not a browser and cannot carry someone else's cookie. Server-side clients (the Next.js frontend, curl) need no `Origin`, so the frontend can be deployed at any address without matching configuration.
-- Serialize refresh calls: only one refresh in flight at a time, other requests wait for it. Presenting a refresh token that was already used is treated as theft and revokes the whole session, so two tabs refreshing with the same cookie log the user out.
+- Prefer serializing refresh calls (one in flight, others wait), but concurrent refreshes are tolerated: a refresh token that was already used, presented again within the reuse grace window (`APP_SECURITY_JWT_REFRESH_REUSE_GRACE`, default 30 s after it was used), gets a new token pair for the same session instead of revoking it. This covers two tabs or two server instances refreshing with the same cookie. The window never reopens a session that ended (logout, expiry, inactive user).
+- Presenting a used refresh token after the window is treated as theft and revokes the whole session. Setting the window to `0` restores this for every reuse (rollback option).
 
 Sessions end early when:
 - the same refresh token is presented twice (the whole chain from that login is revoked);

@@ -30,17 +30,20 @@ public class AuthUseCase {
     private final AccessTokenIssuer accessTokenIssuer;
     private final RefreshTokenFactory refreshTokenFactory;
     private final Duration refreshTokenTtl;
+    private final Duration refreshReuseGrace;
     private final Clock clock;
 
     public AuthUseCase(AuthenticationGateway authenticationGateway, UserRepository userRepository,
                        RefreshTokenRepository refreshTokenRepository, AccessTokenIssuer accessTokenIssuer,
-                       RefreshTokenFactory refreshTokenFactory, Duration refreshTokenTtl, Clock clock) {
+                       RefreshTokenFactory refreshTokenFactory, Duration refreshTokenTtl,
+                       Duration refreshReuseGrace, Clock clock) {
         this.authenticationGateway = authenticationGateway;
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.accessTokenIssuer = accessTokenIssuer;
         this.refreshTokenFactory = refreshTokenFactory;
         this.refreshTokenTtl = refreshTokenTtl;
+        this.refreshReuseGrace = refreshReuseGrace;
         this.clock = clock;
     }
 
@@ -59,7 +62,8 @@ public class AuthUseCase {
 
     /**
      * Troca um refresh token por um novo par. O token apresentado vale uma
-     * unica vez; reapresentar um token ja trocado revoga a familia inteira.
+     * unica vez; reapresentar um token ja trocado revoga a familia inteira,
+     * exceto dentro da janela de tolerancia (ver {@link #reuse}).
      */
     public AuthResult refresh(String rawToken) {
         if (rawToken == null || rawToken.isBlank()) {
@@ -71,24 +75,51 @@ public class AuthUseCase {
             throw AuthenticationFailedException.invalidRefreshToken();
         }
         if (current.wasRotated()) {
-            refreshTokenRepository.revokeFamily(current.getFamilyId(), RevokeReason.REUSE, now);
-            throw AuthenticationFailedException.invalidRefreshToken();
+            return reuse(current, now);
         }
         if (!current.isActive(now)) {
             throw AuthenticationFailedException.invalidRefreshToken();
         }
-        User user = userRepository.findById(current.getUserId());
-        if (user == null || !user.isActive()) {
-            refreshTokenRepository.revokeFamily(current.getFamilyId(), RevokeReason.USER_CHANGED, now);
-            throw AuthenticationFailedException.invalidRefreshToken();
-        }
+        User user = activeUser(current, now);
         if (!refreshTokenRepository.markRotatedIfActive(current.getId(), now)) {
-            // Outra requisicao trocou o mesmo token antes desta: tratado como reuso
-            refreshTokenRepository.revokeFamily(current.getFamilyId(), RevokeReason.REUSE, now);
+            // Outra requisicao trocou o mesmo token antes desta: mesma regra do reuso
+            return reuse(refreshTokenRepository.findByHash(current.getTokenHash()), now);
+        }
+        return issueSuccessor(current, user, now);
+    }
+
+    /**
+     * Token ja trocado reapresentado. Clientes com varias requisicoes simultaneas
+     * (abas, instancias do front) apresentam o mesmo token mais de uma vez em
+     * poucos segundos; dentro da janela, com a sessao aberta, recebem outro
+     * sucessor da mesma familia. Fora dela o reuso e tratado como roubo.
+     */
+    private AuthResult reuse(RefreshToken rotated, Instant now) {
+        if (rotated == null || !rotated.wasRotated() || rotated.isExpired(now)
+                || refreshTokenRepository.isFamilyClosed(rotated.getFamilyId())) {
             throw AuthenticationFailedException.invalidRefreshToken();
         }
+        Duration sinceRotation = Duration.between(rotated.getRevokedAt(), now);
+        if (refreshReuseGrace.isZero() || sinceRotation.compareTo(refreshReuseGrace) > 0) {
+            refreshTokenRepository.revokeFamily(rotated.getFamilyId(), RevokeReason.REUSE, now);
+            throw AuthenticationFailedException.invalidRefreshToken();
+        }
+        return issueSuccessor(rotated, activeUser(rotated, now), now);
+    }
+
+    /** Usuario dono do token; ausente ou inativo revoga a familia. */
+    private User activeUser(RefreshToken token, Instant now) {
+        User user = userRepository.findById(token.getUserId());
+        if (user == null || !user.isActive()) {
+            refreshTokenRepository.revokeFamily(token.getFamilyId(), RevokeReason.USER_CHANGED, now);
+            throw AuthenticationFailedException.invalidRefreshToken();
+        }
+        return user;
+    }
+
+    private AuthResult issueSuccessor(RefreshToken previous, User user, Instant now) {
         String raw = refreshTokenFactory.newToken();
-        RefreshToken next = refreshTokenRepository.save(current.successor(refreshTokenFactory.hash(raw), now));
+        RefreshToken next = refreshTokenRepository.save(previous.successor(refreshTokenFactory.hash(raw), now));
         return result(user, raw, next);
     }
 
