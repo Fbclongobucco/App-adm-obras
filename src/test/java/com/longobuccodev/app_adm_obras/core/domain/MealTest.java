@@ -1,5 +1,6 @@
 package com.longobuccodev.app_adm_obras.core.domain;
 
+import com.longobuccodev.app_adm_obras.core.domain.Meal.BillingPeriod;
 import com.longobuccodev.app_adm_obras.core.domain.Meal.MealType;
 import com.longobuccodev.app_adm_obras.core.exception.InvalidMealException;
 import org.junit.jupiter.api.Test;

@@ -5,16 +5,46 @@ import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Semana de fechamento das refeicoes, de segunda a domingo, cortada no periodo da obra.
- *
- * @param start   primeiro dia da semana dentro da obra
- * @param end     ultimo dia da semana dentro da obra
- * @param partial a semana foi cortada pelo inicio ou pelo termino da obra
- * @param current a semana contem a data de hoje
  */
-public record ClosingWeek(LocalDate start, LocalDate end, boolean partial, boolean current) {
+public final class ClosingWeek {
+
+    private final LocalDate start;
+    private final LocalDate end;
+    private final boolean partial;
+    private final boolean current;
+
+    /**
+     * @param start   primeiro dia da semana dentro da obra
+     * @param end     ultimo dia da semana dentro da obra
+     * @param partial a semana foi cortada pelo inicio ou pelo termino da obra
+     * @param current a semana contem a data de hoje
+     */
+    public ClosingWeek(LocalDate start, LocalDate end, boolean partial, boolean current) {
+        this.start = start;
+        this.end = end;
+        this.partial = partial;
+        this.current = current;
+    }
+
+    public LocalDate start() {
+        return start;
+    }
+
+    public LocalDate end() {
+        return end;
+    }
+
+    public boolean partial() {
+        return partial;
+    }
+
+    public boolean current() {
+        return current;
+    }
 
     public LocalDate monday() {
         return monday(start);
@@ -77,5 +107,24 @@ public record ClosingWeek(LocalDate start, LocalDate end, boolean partial, boole
 
     private static LocalDate min(LocalDate a, LocalDate b) {
         return a.isBefore(b) ? a : b;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof ClosingWeek other
+                && Objects.equals(start, other.start)
+                && Objects.equals(end, other.end)
+                && partial == other.partial
+                && current == other.current;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(start, end, partial, current);
+    }
+
+    @Override
+    public String toString() {
+        return "ClosingWeek[start=" + start + ", end=" + end + ", partial=" + partial + ", current=" + current + "]";
     }
 }

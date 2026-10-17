@@ -4,9 +4,9 @@ import com.longobuccodev.app_adm_obras.application.dto.meal.MealAdjustmentRespon
 import com.longobuccodev.app_adm_obras.application.dto.meal.MealResponseDTO;
 import com.longobuccodev.app_adm_obras.application.dto.meal.MealSummaryDTO;
 import com.longobuccodev.app_adm_obras.application.dto.meal.MealProjectionDTO;
-import com.longobuccodev.app_adm_obras.core.domain.BillingPeriod;
 import com.longobuccodev.app_adm_obras.core.domain.Meal;
 import com.longobuccodev.app_adm_obras.core.domain.MealAdjustment;
+import com.longobuccodev.app_adm_obras.core.domain.Meal.BillingPeriod;
 import com.longobuccodev.app_adm_obras.core.domain.Meal.MealType;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
 import org.junit.jupiter.api.Test;

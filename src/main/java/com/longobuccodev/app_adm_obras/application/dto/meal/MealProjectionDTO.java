@@ -1,6 +1,6 @@
 package com.longobuccodev.app_adm_obras.application.dto.meal;
 
-import com.longobuccodev.app_adm_obras.core.domain.BillingPeriod;
+import com.longobuccodev.app_adm_obras.core.domain.Meal.BillingPeriod;
 
 import java.math.BigDecimal;
 
