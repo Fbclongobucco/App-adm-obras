@@ -6,6 +6,8 @@
 #
 # --target perf   sobe PostgreSQL e a app (perfil prod, CPU/memoria limitadas) em perf/compose.yaml,
 #                 cria o admin de carga e a massa, roda o roteiro e derruba tudo (KEEP=true mantem de pe).
+# --target server igual ao perf, mas em perf/compose.server.yaml: app e PostgreSQL 18 no MESMO host,
+#                 dividindo 2 nucleos e 900 MB (simula o servidor de producao de 2 nucleos e 1 GB).
 # --target local  usa a app ja rodando no perfil local (./mvnw spring-boot:run) em BASE_URL. Cria a massa
 #                 so se a base nao tiver obras. --threads so registra o modo: suba a app com
 #                 APP_VIRTUAL_THREADS=true|false conforme a medicao.
@@ -29,7 +31,8 @@ while [[ $# -gt 0 ]]; do
     *) echo "opcao desconhecida: $1" >&2; exit 2 ;;
   esac
 done
-[[ "$target" == local || "$target" == perf ]] || { echo "use --target local|perf" >&2; exit 2; }
+[[ "$target" == local || "$target" == perf || "$target" == server ]] \
+  || { echo "use --target local|perf|server" >&2; exit 2; }
 [[ "$threads" == on || "$threads" == off ]] || { echo "use --threads on|off" >&2; exit 2; }
 
 # O k6 grava o resumo em perf/results com o usuario do host
@@ -43,6 +46,7 @@ cpu_model="$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2 | xar
 mem_total="$(awk '/MemTotal/ {printf "%.0f GiB", $2/1048576}' /proc/meminfo 2>/dev/null || echo '?')"
 machine="$cpu_model; $(nproc) CPUs; $mem_total"
 [[ "$target" == perf ]] && machine="$machine; app e banco limitados a 2 CPUs e 1 GiB cada"
+[[ "$target" == server ]] && machine="$machine; app e banco no mesmo host: 2 nucleos (cpuset 0,1), 600 MB + 300 MB"
 
 meta=(-e META_TARGET="$target" -e META_SCENARIO="$scenario" -e META_THREADS="$threads"
       -e META_POOL="${DB_POOL_MAX_SIZE:-10}" -e META_COMMIT="$commit" -e META_MACHINE="$machine"
@@ -71,8 +75,10 @@ wait_login() {
   return 1
 }
 
-if [[ "$target" == perf ]]; then
-  compose=(docker compose -f "$PERF_DIR/compose.yaml")
+if [[ "$target" == perf || "$target" == server ]]; then
+  compose_file="$PERF_DIR/compose.yaml"
+  [[ "$target" == server ]] && compose_file="$PERF_DIR/compose.server.yaml"
+  compose=(docker compose -f "$compose_file")
   port="${PERF_APP_PORT:-8090}"
   [[ "${KEEP:-false}" == true ]] || trap '"${compose[@]}" down -v --remove-orphans > /dev/null 2>&1' EXIT
   export APP_VIRTUAL_THREADS=$([[ "$threads" == on ]] && echo true || echo false)

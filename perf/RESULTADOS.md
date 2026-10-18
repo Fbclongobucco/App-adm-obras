@@ -190,6 +190,36 @@ detalhe	9499	78,8	0,00	8,5	66,2	76,1
 busca	4768	39,6	0,00	88,9	297,6	369,9
 escrita	3256	27,0	0,00	17,4	77,7	91,9
 ```
+### Servidor único: app e PostgreSQL 18 no mesmo host (simula o servidor de 2 núcleos e 1 GB)
+
+`perf/compose.server.yaml`: os dois contêineres presos aos mesmos 2 núcleos (cpuset 0,1); app com 600 MB e `-Xmx384m`, PostgreSQL 18.6 com 300 MB (`shared_buffers=128MB`, `max_connections=20`, `work_mem=4MB`). O k6 roda fora desses núcleos.
+
+```
+Execução       20261018-125939-server-medio-on.json
+Commit         97e67c8-dirty
+Alvo           server
+Cenário        medio
+Threads        on
+VUs / duração  10 / 2m; pausa entre iterações 0 s
+Pool           10
+Máquina        Intel(R) Core(TM) i5-10210U CPU @ 1.60GHz; 8 CPUs; 8 GiB; app e banco no mesmo host: 2 nucleos (cpuset 0,1), 600 MB + 300 MB
+Total          53560 requisições, 444,1 req/s, falhas 0,00 %
+
+grupo	requisições	req/s	falhas %	p50 (ms)	p95 (ms)	p99 (ms)
+listagem	25426	210,8	0,00	16,4	52,2	89,3
+detalhe	15323	127,1	0,00	13,3	43,4	73,7
+busca	7701	63,9	0,00	26,1	60,9	98,9
+escrita	5086	42,2	0,00	24,6	76,2	152,8
+
+contêiner	memória pico	limite	CPU pico
+app	441 MiB	600 MiB	165 %
+postgres	105 MiB	300 MiB	73 %
+```
+
+- Juntos, cerca de 550 MiB no pico: cabem em 1 GB sem estourar os limites. Nenhum contêiner foi encerrado por falta de memória (`OOMKilled=false`).
+- Comparado com o alvo `perf` com virtual threads (488–503 req/s, app e banco com 2 CPUs e 1 GiB cada), a máquina única entregou 444,1 req/s com a metade dos recursos totais.
+- Não mede a latência de rede entre a app e o Neon de produção (Ohio): aqui o banco está no mesmo host.
+
 ### Comparação (cenário medio, alvo perf, 10 VUs, 2 min)
 
 ```

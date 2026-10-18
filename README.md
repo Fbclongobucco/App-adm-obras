@@ -111,17 +111,48 @@ Security notes:
 
 ## Deploy
 
-Checklist for a production release (verified on 2026-10-12 with PostgreSQL 16 and the Docker image):
+Production runs on a single server with `compose.yaml`: the API, PostgreSQL 18 (`postgres:18.6`, same major version as the previous Neon database) and a daily backup. Memory limits (API 600 MB with `-Xmx384m`, PostgreSQL 300 MB) were validated on 2 cores and 1 GB: peak of 441 MiB and 105 MiB under load, no container killed (`perf/RESULTADOS.md`, "Servidor único").
 
-1. **Backup** the production database. Migration `V8` drops `accommodation.days` and `total_price`; rollback needs the backup.
-2. **Build and push** the image: `./scripts/docker-build-push.sh` (or `docker build -t <user>/app-adm-obras:<tag> .` and `docker push`). The build compiles inside the image (`maven:3.9-eclipse-temurin-25`); tests run before, with `./mvnw test`.
-3. **Environment** of the container: `SPRING_PROFILES_ACTIVE=prod`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `APP_JWT_SECRET` (new, Base64 >= 32 bytes) and `APP_CORS_ALLOWED_ORIGINS` (frontend URL). Optional: `JAVA_OPTS`, `APP_REFRESH_COOKIE_SAME_SITE`.
-4. **Start**: Flyway applies `V1`..`V8` (or the missing ones) before the API serves requests; the log shows `Schema "public" is up to date` or `Successfully applied`.
-5. **First admin** (empty database only): start once with `APP_BOOTSTRAP_ENABLED=true`, `APP_BOOTSTRAP_ADMIN_EMAIL` and a strong `APP_BOOTSTRAP_ADMIN_PASSWORD`; the log shows `Usuario bootstrap criado`. Log in, then restart with `APP_BOOTSTRAP_ENABLED=false` and without the password.
-6. **Frontend together**: the accommodation and meal contracts changed (BREAKING); deploy the matching frontend branch at the same time.
-7. **Smoke test**: `POST /api/auth/login`, then `GET /api/projects` and `GET /api/accommodations` with the token. Swagger (`/v3/api-docs`) answers 404 in prod by design.
+1. **`.env`** on the server, from `.env.example`: `SPRING_PROFILES_ACTIVE=prod`, `APP_JWT_SECRET`, `APP_CORS_ALLOWED_ORIGINS` and a long random `POSTGRES_PASSWORD` (`openssl rand -base64 24`). `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` are ignored: compose points the API at its own PostgreSQL.
+2. **Start**: `docker compose up -d --build`. Flyway migrates an empty database from `V1`; the log shows `Successfully applied` or `Schema "public" is up to date`.
+3. **First admin** (empty database only): start once with `APP_BOOTSTRAP_ENABLED=true`, `APP_BOOTSTRAP_ADMIN_EMAIL` and a strong `APP_BOOTSTRAP_ADMIN_PASSWORD`; then set `APP_BOOTSTRAP_ENABLED=false` and remove the password.
+4. **Smoke test**: `POST /api/auth/login`, then `GET /api/projects` with the token. Swagger (`/v3/api-docs`) answers 404 in prod by design.
+5. **Backups**: the `backup` service writes `pg_dump` files to `./backups` once a day (`BACKUP_INTERVAL_SECONDS`) and deletes the ones older than `BACKUP_KEEP_DAYS` (default 7). **Copy them off the server**: a backup on the same disk does not survive the loss of the server. Restore: `pg_restore --clean --if-exists --no-owner --no-acl -d app_adm_obras <file>.dump`.
 
-The container runs as the non-root user `appuser` (uid 1001) and listens on 8080.
+PostgreSQL publishes no port: only the API and the backup reach it, over the compose network. The API container runs as the non-root user `appuser` (uid 1001) and listens on 8080 (`APP_PORT` on the host).
+
+### Moving the data from Neon
+
+Rehearsed locally on 2026-10-18 (dump of a copy, restore, API start, login and counts checked). Stop writes during the copy: data changed after the dump is lost.
+
+```bash
+# 1. Stop the API that still uses Neon (the frontend gets errors until step 5)
+docker compose stop app
+
+# 2. Dump Neon with the same PostgreSQL major (18). Connection string from the Neon console, with sslmode=require
+docker run --rm -v "$PWD:/out" postgres:18.6 \
+  pg_dump -Fc -f /out/neon.dump "postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
+
+# 3. Start only the new database and restore (roles and grants from Neon are not copied)
+docker compose up -d postgres
+docker exec -i app-adm-obras-postgres sh -c 'pg_restore --no-owner --no-acl -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < neon.dump
+
+# 4. Check the schema version and a count
+docker exec app-adm-obras-postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "select max(version) from flyway_schema_history" -c "select count(*) from project"'
+
+# 5. Start everything; Flyway must report the schema up to date
+docker compose up -d --build
+```
+
+A plain SQL dump (`.sql`, e.g. `pg_dump` without `-Fc` or the Neon console export) is restored with `psql` instead of `pg_restore` in step 3; stop at the first error so a partial restore is never used:
+
+```bash
+docker exec -i app-adm-obras-postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < neon.sql
+```
+
+Rehearsed with the production export of 2026-10-18 (plain SQL): restore ok, Flyway "Successfully validated 9 migrations", API up.
+
+Keep the Neon project until the new server has run for a while and a backup has been restored successfully. `pg_restore` may print warnings about Neon-specific objects; the tables, data and `flyway_schema_history` are what matter.
 
 ## Database schema documentation
 
