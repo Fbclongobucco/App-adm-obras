@@ -282,7 +282,7 @@ Migration `V4` moves `LUNCH` rows to `lunch_quantity`/`lunch_price` and `DINNER`
 `dailyPrice` now includes delivery and soda. With no delivery fee and no soda price, values are unchanged.
 
 ```
-POST/PUT /api/restaurants   + deliveryFee (number | null)       // per delivery; null = no fee
+POST/PUT /api/restaurants   + deliveryFee (number | null)       // per delivery; null = no fee (split in V10)
 RestaurantSummary           + deliveryFee
 Restaurant (POST/PUT, GET /api/restaurants, /{id}, /by-project/{projectId})
                             + meals: MealSummary[]
@@ -372,6 +372,17 @@ Meals are settled with the restaurant weekly, Monday to Sunday.
 - `days`: the 7 days with `status` (`SERVICE`, `NO_SERVICE`, `EXTRA_DAY`, `OFF` for a weekend without adjustment, `OUT_OF_PERIOD`), `lunchMeals`, `dinnerMeals`, `deliveries`, `sodas`, `price` and `adjustmentIds`; on a restaurant, `partialNoService` marks a day where only some meals have no service. `totals.serviceDays` counts `SERVICE` and `EXTRA_DAY`. The weeks add up to the meal `totalPrice`.
 - `POST /api/restaurants/{id}/adjustments` `{ date, type, note, quantities: [{ mealId, lunchQuantity, dinnerQuantity }] }` applies a date adjustment to every meal of the restaurant (`NO_SERVICE`: all meals; `EXTRA_DAY`: only meals with a quantity above zero, none → `400 meal.adjustment.invalid.quantity`). Same rules and codes as the meal adjustment; any error writes nothing. `201` with the created adjustments.
 - `DELETE /api/restaurants/{id}/adjustments/{date}` removes that date from every meal of the restaurant; `404 meal.adjustment.not_found` when none has it. Writes are `ADMIN` only.
+
+### Delivery fee per meal and editable days (migration `V10`)
+
+- **Breaking:** restaurants take and return `lunchDeliveryFee` and `dinnerDeliveryFee` (optional, > 0, `400 restaurant.invalid.delivery_fee`) instead of `deliveryFee`. `V10` copies the old fee to both, so no computed value changes. A meal's `deliveryDailyPrice` = lunch fee (when it serves lunch) + dinner fee (when it serves dinner).
+- New adjustment type `CHANGED`: a weekday (Monday to Friday, else `400 meal.adjustment.invalid.changed_day`) with other numbers; same quantity rules as `EXTRA_DAY`. `MealSummary` gains `changedDays`.
+- `EXTRA_DAY` and `CHANGED` accept optional `lunchDeliveries`, `dinnerDeliveries` (0 to 100, `400 meal.adjustment.invalid.deliveries`; above zero on a meal with quantity 0 → `400 meal.adjustment.invalid.delivery_without_meal`) and `sodas` (0 to 10000, `400 meal.adjustment.invalid.sodas`; above zero when the restaurant has no soda → `400 meal.adjustment.invalid.soda_not_supplied`). Empty means the default: 1 delivery per meal with a quantity, 1 soda per delivery when the restaurant provides soda. Responses return the effective values and `deliveries` (sum).
+- Day `price` = quantity × price of each meal + lunch deliveries × lunch fee + dinner deliveries × dinner fee + sodas × soda price. `totalPrice` is now the sum of every day of the period (the weekly closing calculation).
+- `PUT /api/meals/{id}/adjustments/{date}` `{ type, lunchQuantity, dinnerQuantity, lunchDeliveries, dinnerDeliveries, sodas, note }` creates or replaces the adjustment of that date, keeping its id; same rules, no `409`. `200` with the adjustment.
+- `PUT /api/restaurants/{id}/adjustments/{date}` `{ type: EXTRA_DAY | CHANGED, note, meals: [{ mealId, lunchQuantity, dinnerQuantity, lunchDeliveries, dinnerDeliveries, sodas }] }` writes the day on every listed meal at once (meals left out do not change). `EXTRA_DAY`: meals with a quantity get the extra day, the others lose any adjustment on that date. `CHANGED`: a meal with all quantities 0 gets `NO_SERVICE`, a meal with the default numbers keeps no adjustment, the others get `CHANGED`. No meal with a quantity → `400 meal.adjustment.invalid.quantity`; a meal of another restaurant → `404 meal.not_found`; any error writes nothing. `204`.
+- Weekly closing: `status` `CHANGED` (counted in `totals.serviceDays`); each day adds `lunchDeliveries`, `dinnerDeliveries`, `note` and, on a restaurant, `meals: [{ mealId, status, lunchMeals, dinnerMeals, lunchDeliveries, dinnerDeliveries, sodas, price }]`.
+- Example: lunch 10 × 25.00, dinner 8 × 22.00, fees 8.00 / 10.00, soda 5.00 (`dailyPrice` 454.00), project 2026-10-05 to 2026-10-16, `CHANGED` on 2026-10-14 with 10 lunches, 9 dinners, 2 lunch deliveries and 1 dinner delivery → 489.00 that day, week of 2026-10-12 2305.00, `totalPrice` 4575.00.
 
 ### Accommodation lease
 

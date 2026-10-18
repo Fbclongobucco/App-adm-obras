@@ -46,7 +46,8 @@ class WeeklyClosingIntegrationTest {
         project.put("startDate", "2026-10-05");
         project.put("endDate", "2026-10-16");
         Map<String, Object> restaurant = api.restaurantBody(api.create("/api/projects", project));
-        restaurant.put("deliveryFee", 8);
+        restaurant.put("lunchDeliveryFee", 8);
+        restaurant.put("dinnerDeliveryFee", 8);
         restaurant.put("sodaPrice", 5);
         restaurantId = api.create("/api/restaurants", restaurant);
         lunchId = api.create("/api/meals", api.mealBody(restaurantId, "LUNCH"));

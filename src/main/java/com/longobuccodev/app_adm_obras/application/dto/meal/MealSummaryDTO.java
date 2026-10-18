@@ -33,6 +33,7 @@ public record MealSummaryDTO(
         Integer serviceDays,
         Integer noServiceDays,
         Integer extraDays,
+        Integer changedDays,
         BigDecimal extraDaysPrice,
         BigDecimal totalPrice,
         List<MealProjectionDTO> projections,

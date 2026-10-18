@@ -34,8 +34,11 @@ public class RestaurantEntity extends AuditedEntity {
     @JoinColumn(name = "project_id", nullable = false)
     private ProjectEntity project;
 
-    @Column(name = "delivery_fee", precision = 19, scale = 2)
-    private BigDecimal deliveryFee;
+    @Column(name = "lunch_delivery_fee", precision = 19, scale = 2)
+    private BigDecimal lunchDeliveryFee;
+
+    @Column(name = "dinner_delivery_fee", precision = 19, scale = 2)
+    private BigDecimal dinnerDeliveryFee;
 
     @Column(name = "soda_price", precision = 19, scale = 2)
     private BigDecimal sodaPrice;
@@ -87,12 +90,20 @@ public class RestaurantEntity extends AuditedEntity {
         this.project = project;
     }
 
-    public BigDecimal getDeliveryFee() {
-        return deliveryFee;
+    public BigDecimal getLunchDeliveryFee() {
+        return lunchDeliveryFee;
     }
 
-    public void setDeliveryFee(BigDecimal deliveryFee) {
-        this.deliveryFee = deliveryFee;
+    public void setLunchDeliveryFee(BigDecimal lunchDeliveryFee) {
+        this.lunchDeliveryFee = lunchDeliveryFee;
+    }
+
+    public BigDecimal getDinnerDeliveryFee() {
+        return dinnerDeliveryFee;
+    }
+
+    public void setDinnerDeliveryFee(BigDecimal dinnerDeliveryFee) {
+        this.dinnerDeliveryFee = dinnerDeliveryFee;
     }
 
     public BigDecimal getSodaPrice() {

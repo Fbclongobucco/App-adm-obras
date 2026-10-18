@@ -56,11 +56,14 @@ class RestaurantTest {
         Restaurant withoutFee = new Restaurant(null, "Cantina", null, null, project());
         Restaurant withFee = new Restaurant(null, "Cantina", null, null, project(), new BigDecimal("8.00"));
 
-        assertThat(withoutFee.getDeliveryFee()).isNull();
-        assertThat(withFee.getDeliveryFee()).isEqualByComparingTo("8.00");
+        assertThat(withoutFee.getLunchDeliveryFee()).isNull();
+        assertThat(withoutFee.getDinnerDeliveryFee()).isNull();
+        assertThat(withFee.getLunchDeliveryFee()).isEqualByComparingTo("8.00");
+        assertThat(withFee.getDinnerDeliveryFee()).isEqualByComparingTo("8.00");
 
-        withFee.setDeliveryFee(null);
-        assertThat(withFee.getDeliveryFee()).isNull();
+        withFee.setDinnerDeliveryFee(null);
+        assertThat(withFee.getLunchDeliveryFee()).isEqualByComparingTo("8.00");
+        assertThat(withFee.getDinnerDeliveryFee()).isNull();
     }
 
     @Test
@@ -72,9 +75,12 @@ class RestaurantTest {
                     .extracting("errorCode").isEqualTo("restaurant.invalid.delivery_fee");
         }
         Restaurant restaurant = new Restaurant(null, "Cantina", null, null, project(), new BigDecimal("8.00"));
-        assertThatThrownBy(() -> restaurant.setDeliveryFee(BigDecimal.ZERO))
+        assertThatThrownBy(() -> restaurant.setLunchDeliveryFee(BigDecimal.ZERO))
                 .extracting("errorCode").isEqualTo("restaurant.invalid.delivery_fee");
-        assertThat(restaurant.getDeliveryFee()).isEqualByComparingTo("8.00");
+        assertThatThrownBy(() -> restaurant.setDinnerDeliveryFee(new BigDecimal("-1.00")))
+                .extracting("errorCode").isEqualTo("restaurant.invalid.delivery_fee");
+        assertThat(restaurant.getLunchDeliveryFee()).isEqualByComparingTo("8.00");
+        assertThat(restaurant.getDinnerDeliveryFee()).isEqualByComparingTo("8.00");
     }
 
     @Test
@@ -85,7 +91,7 @@ class RestaurantTest {
 
         assertThat(withoutSoda.getSodaPrice()).isNull();
         assertThat(withSoda.getSodaPrice()).isEqualByComparingTo("5.00");
-        assertThat(withSoda.getDeliveryFee()).isNull();
+        assertThat(withSoda.getLunchDeliveryFee()).isNull();
 
         withSoda.setSodaPrice(null);
         assertThat(withSoda.getSodaPrice()).isNull();

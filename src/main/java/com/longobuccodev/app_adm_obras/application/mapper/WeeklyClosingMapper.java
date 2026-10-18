@@ -40,7 +40,10 @@ public final class WeeklyClosingMapper {
 
     private static DayClosingDTO toDto(DayClosing day) {
         return new DayClosingDTO(day.date(), day.date().getDayOfWeek(), day.status(), day.partialNoService(),
-                day.lunchMeals(), day.dinnerMeals(), day.deliveries(), day.sodas(), day.price(),
-                day.adjustmentIds());
+                day.lunchMeals(), day.dinnerMeals(), day.lunchDeliveries(), day.dinnerDeliveries(),
+                day.deliveries(), day.sodas(), day.price(), day.adjustmentIds(), day.note(),
+                day.meals().stream().map(meal -> new DayClosingDTO.MealDay(meal.mealId(), meal.status(),
+                        meal.lunchMeals(), meal.dinnerMeals(), meal.lunchDeliveries(), meal.dinnerDeliveries(),
+                        meal.sodas(), meal.price())).toList());
     }
 }

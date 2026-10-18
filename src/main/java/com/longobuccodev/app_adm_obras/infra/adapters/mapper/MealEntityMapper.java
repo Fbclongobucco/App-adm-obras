@@ -34,7 +34,8 @@ public final class MealEntityMapper {
 
     private static MealAdjustment toDomain(MealAdjustmentEntity entity) {
         return AuditMapping.restore(new MealAdjustment(entity.getId(), entity.getDate(), entity.getType(),
-                entity.getLunchQuantity(), entity.getDinnerQuantity(), entity.getNote()), entity);
+                entity.getLunchQuantity(), entity.getDinnerQuantity(), entity.getLunchDeliveries(),
+                entity.getDinnerDeliveries(), entity.getSodas(), entity.getNote()), entity);
     }
 
     /** @param restaurant referencia gerenciada ao restaurante; a obra da refeicao e copiada dele */
@@ -85,6 +86,9 @@ public final class MealEntityMapper {
             target.setType(adjustment.getType());
             target.setLunchQuantity(adjustment.getLunchQuantity());
             target.setDinnerQuantity(adjustment.getDinnerQuantity());
+            target.setLunchDeliveries(adjustment.getLunchDeliveries());
+            target.setDinnerDeliveries(adjustment.getDinnerDeliveries());
+            target.setSodas(adjustment.getSodas());
             target.setNote(adjustment.getNote());
             AuditMapping.copy(adjustment, target);
         }

@@ -42,6 +42,15 @@ public class MealAdjustmentEntity extends AuditedEntity {
     @Column(name = "dinner_quantity")
     private Integer dinnerQuantity;
 
+    @Column(name = "lunch_deliveries")
+    private Integer lunchDeliveries;
+
+    @Column(name = "dinner_deliveries")
+    private Integer dinnerDeliveries;
+
+    @Column(name = "sodas")
+    private Integer sodas;
+
     @Column(name = "note", length = 100)
     private String note;
 
@@ -98,6 +107,30 @@ public class MealAdjustmentEntity extends AuditedEntity {
 
     public void setDinnerQuantity(Integer dinnerQuantity) {
         this.dinnerQuantity = dinnerQuantity;
+    }
+
+    public Integer getLunchDeliveries() {
+        return lunchDeliveries;
+    }
+
+    public void setLunchDeliveries(Integer lunchDeliveries) {
+        this.lunchDeliveries = lunchDeliveries;
+    }
+
+    public Integer getDinnerDeliveries() {
+        return dinnerDeliveries;
+    }
+
+    public void setDinnerDeliveries(Integer dinnerDeliveries) {
+        this.dinnerDeliveries = dinnerDeliveries;
+    }
+
+    public Integer getSodas() {
+        return sodas;
+    }
+
+    public void setSodas(Integer sodas) {
+        this.sodas = sodas;
     }
 
     public String getNote() {

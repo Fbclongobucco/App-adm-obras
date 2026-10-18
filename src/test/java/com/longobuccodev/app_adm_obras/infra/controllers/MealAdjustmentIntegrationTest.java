@@ -47,7 +47,8 @@ class MealAdjustmentIntegrationTest {
         projectBody.put("endDate", "2026-10-16");
         projectId = api.create("/api/projects", projectBody);
         Map<String, Object> restaurant = api.restaurantBody(projectId);
-        restaurant.put("deliveryFee", 8);
+        restaurant.put("lunchDeliveryFee", 8);
+        restaurant.put("dinnerDeliveryFee", 8);
         restaurant.put("sodaPrice", 5);
         String restaurantId = api.create("/api/restaurants", restaurant);
         mealId = api.create("/api/meals", api.mealBody(restaurantId, "LUNCH_AND_DINNER"));

@@ -16,8 +16,8 @@ public final class RestaurantEntityMapper {
         }
         return AuditMapping.restore(new Restaurant(entity.getId(), entity.getName(), entity.getPhone(),
                 AddressEntityMapper.toDomain(entity.getAddress()),
-                ProjectEntityMapper.toDomainShallow(entity.getProject()), entity.getDeliveryFee(),
-                entity.getSodaPrice()), entity);
+                ProjectEntityMapper.toDomainShallow(entity.getProject()), entity.getLunchDeliveryFee(),
+                entity.getDinnerDeliveryFee(), entity.getSodaPrice()), entity);
     }
 
     /** @param project referencia gerenciada a obra do restaurante */
@@ -37,7 +37,8 @@ public final class RestaurantEntityMapper {
         }
         entity.setName(domain.getName());
         entity.setPhone(domain.getPhone());
-        entity.setDeliveryFee(domain.getDeliveryFee());
+        entity.setLunchDeliveryFee(domain.getLunchDeliveryFee());
+        entity.setDinnerDeliveryFee(domain.getDinnerDeliveryFee());
         entity.setSodaPrice(domain.getSodaPrice());
         entity.setProject(project);
         AuditMapping.copy(domain, entity);

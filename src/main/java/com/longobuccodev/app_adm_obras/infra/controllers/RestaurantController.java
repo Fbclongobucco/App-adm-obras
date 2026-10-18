@@ -1,6 +1,7 @@
 package com.longobuccodev.app_adm_obras.infra.controllers;
 
 import com.longobuccodev.app_adm_obras.application.dto.closing.RestaurantAdjustmentRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.closing.RestaurantDayRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.closing.WeeklyClosingResponseDTO;
 import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.dto.meal.MealAdjustmentResponseDTO;
@@ -38,7 +39,8 @@ public class RestaurantController {
     }
 
     @Operation(summary = "Cria o restaurante da obra",
-            description = "deliveryFee: taxa por entrega, opcional (null = sem taxa); informada, deve ser maior "
+            description = "lunchDeliveryFee e dinnerDeliveryFee: taxa por entrega do almoco e do jantar, opcionais (null = sem "
+                    + "taxa); informadas, devem ser maiores "
                     + "que zero, senao 400 restaurant.invalid.delivery_fee. sodaPrice: preco unitario do "
                     + "refrigerante, 1 por entrega em todas as refeicoes do restaurante, opcional (null = nao "
                     + "fornece); informado, deve ser maior que zero, senao 400 restaurant.invalid.soda_price. "
@@ -74,7 +76,8 @@ public class RestaurantController {
     }
 
     @Operation(summary = "Substitui o restaurante",
-            description = "deliveryFee: taxa por entrega, opcional (null = sem taxa); informada, deve ser maior "
+            description = "lunchDeliveryFee e dinnerDeliveryFee: taxa por entrega do almoco e do jantar, opcionais (null = sem "
+                    + "taxa); informadas, devem ser maiores "
                     + "que zero, senao 400 restaurant.invalid.delivery_fee. sodaPrice: preco unitario do "
                     + "refrigerante, 1 por entrega em todas as refeicoes do restaurante, opcional (null = nao "
                     + "fornece); informado, deve ser maior que zero, senao 400 restaurant.invalid.soda_price; "
@@ -122,6 +125,24 @@ public class RestaurantController {
     public ResponseEntity<List<MealAdjustmentResponseDTO>> addAdjustment(
             @PathVariable UUID id, @RequestBody RestaurantAdjustmentRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(restaurantUseCase.addAdjustment(id, dto));
+    }
+
+    @Operation(summary = "Grava os numeros do dia em todas as refeicoes do restaurante",
+            description = "type: EXTRA_DAY (sabado ou domingo) ou CHANGED (dia util); outro -> 400 "
+                    + "meal.adjustment.invalid.type. meals: numeros de cada refeicao (lunchQuantity, dinnerQuantity "
+                    + "e, opcionais, lunchDeliveries, dinnerDeliveries, sodas); refeicao ausente nao muda. EXTRA_DAY: "
+                    + "refeicao com quantidade grava o dia extra; sem quantidade fica sem ajuste na data. CHANGED: "
+                    + "refeicao com todas as quantidades zero fica NO_SERVICE; com os numeros do padrao fica sem "
+                    + "ajuste; senao grava o dia alterado. Nenhuma refeicao com quantidade -> 400 "
+                    + "meal.adjustment.invalid.quantity. Mesmas regras e codigos do ajuste da refeicao; qualquer "
+                    + "erro nao grava nada. mealId de outra refeicao -> 404 meal.not_found. 204 sem corpo.")
+    @PutMapping("/{id}/adjustments/{date}")
+    public ResponseEntity<Void> putDay(
+            @PathVariable UUID id,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestBody RestaurantDayRequestDTO dto) {
+        restaurantUseCase.putDay(id, date, dto);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Remove os ajustes da data em todas as refeicoes do restaurante",

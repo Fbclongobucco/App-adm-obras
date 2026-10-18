@@ -120,18 +120,21 @@ public final class WeekClosing {
     }
 
     /**
-     * Situacao somada: dia extra se alguma refeicao tem; sem fornecimento se todas estao sem; fornecimento
-     * se alguma fornece (parcial quando outra esta sem fornecimento); senao fim de semana ou fora do periodo.
+     * Situacao somada: dia extra se alguma refeicao tem; sem fornecimento se todas estao sem; dia alterado se
+     * alguma refeicao esta alterada; fornecimento se alguma fornece; senao fim de semana ou fora do periodo.
+     * Num dia com fornecimento, {@code partialNoService} marca refeicao sem fornecimento. O dia traz o dia de
+     * cada refeicao em {@link DayClosing#meals()}.
      */
     private static DayClosing sum(LocalDate date, List<DayClosing> perMeal) {
-        boolean anyExtra = has(perMeal, DayClosing.Status.EXTRA_DAY);
         boolean anyNoService = has(perMeal, DayClosing.Status.NO_SERVICE);
         boolean allNoService = perMeal.stream().allMatch(day -> day.status() == DayClosing.Status.NO_SERVICE);
         DayClosing.Status status;
-        if (anyExtra) {
+        if (has(perMeal, DayClosing.Status.EXTRA_DAY)) {
             status = DayClosing.Status.EXTRA_DAY;
         } else if (allNoService) {
             status = DayClosing.Status.NO_SERVICE;
+        } else if (has(perMeal, DayClosing.Status.CHANGED)) {
+            status = DayClosing.Status.CHANGED;
         } else if (has(perMeal, DayClosing.Status.SERVICE)) {
             status = DayClosing.Status.SERVICE;
         } else if (has(perMeal, DayClosing.Status.OFF)) {
@@ -139,11 +142,14 @@ public final class WeekClosing {
         } else {
             status = DayClosing.Status.OUT_OF_PERIOD;
         }
+        boolean partialNoService = anyNoService
+                && (status == DayClosing.Status.SERVICE || status == DayClosing.Status.CHANGED);
         List<UUID> adjustmentIds = perMeal.stream().flatMap(day -> day.adjustmentIds().stream()).toList();
-        return new DayClosing(date, status, status == DayClosing.Status.SERVICE && anyNoService,
+        String note = perMeal.stream().map(DayClosing::note).filter(Objects::nonNull).findFirst().orElse(null);
+        return new DayClosing(date, null, status, partialNoService,
                 sumInt(perMeal, DayClosing::lunchMeals), sumInt(perMeal, DayClosing::dinnerMeals),
-                sumInt(perMeal, DayClosing::deliveries), sumInt(perMeal, DayClosing::sodas), sumPrice(perMeal),
-                adjustmentIds);
+                sumInt(perMeal, DayClosing::lunchDeliveries), sumInt(perMeal, DayClosing::dinnerDeliveries),
+                sumInt(perMeal, DayClosing::sodas), sumPrice(perMeal), adjustmentIds, note, perMeal);
     }
 
     private static int sumInt(List<DayClosing> days, ToIntFunction<DayClosing> field) {

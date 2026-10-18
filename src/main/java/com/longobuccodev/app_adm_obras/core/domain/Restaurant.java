@@ -19,7 +19,8 @@ public class Restaurant extends Audited {
     private String phone;
     private Address address;
     private Project project;
-    private BigDecimal deliveryFee;
+    private BigDecimal lunchDeliveryFee;
+    private BigDecimal dinnerDeliveryFee;
     private BigDecimal sodaPrice;
 
     /** Restaurante sem taxa de entrega e sem refrigerante. */
@@ -27,19 +28,26 @@ public class Restaurant extends Audited {
         this(id, name, phone, address, project, null);
     }
 
-    /** Restaurante sem refrigerante. */
+    /** Restaurante sem refrigerante, com a mesma taxa no almoco e no jantar. */
     public Restaurant(UUID id, String name, String phone, Address address, Project project, BigDecimal deliveryFee) {
         this(id, name, phone, address, project, deliveryFee, null);
     }
 
+    /** Mesma taxa de entrega no almoco e no jantar. */
     public Restaurant(UUID id, String name, String phone, Address address, Project project, BigDecimal deliveryFee,
                       BigDecimal sodaPrice) {
+        this(id, name, phone, address, project, deliveryFee, deliveryFee, sodaPrice);
+    }
+
+    public Restaurant(UUID id, String name, String phone, Address address, Project project,
+                      BigDecimal lunchDeliveryFee, BigDecimal dinnerDeliveryFee, BigDecimal sodaPrice) {
         setId(id);
         setName(name);
         setPhone(phone);
         setAddress(address);
         setProject(project);
-        setDeliveryFee(deliveryFee);
+        setLunchDeliveryFee(lunchDeliveryFee);
+        setDinnerDeliveryFee(dinnerDeliveryFee);
         setSodaPrice(sodaPrice);
     }
 
@@ -86,16 +94,22 @@ public class Restaurant extends Audited {
         this.project = project;
     }
 
-    /** Taxa cobrada por entrega; {@code null} quando o restaurante nao cobra entrega. */
-    public BigDecimal getDeliveryFee() {
-        return deliveryFee;
+    /** Taxa por entrega do almoco; {@code null} quando a entrega do almoco nao e cobrada. */
+    public BigDecimal getLunchDeliveryFee() {
+        return lunchDeliveryFee;
     }
 
-    public void setDeliveryFee(BigDecimal deliveryFee) {
-        if (deliveryFee != null && deliveryFee.compareTo(BigDecimal.ZERO) <= 0) {
-            throw InvalidRestaurantException.invalidDeliveryFee(deliveryFee);
-        }
-        this.deliveryFee = deliveryFee;
+    public void setLunchDeliveryFee(BigDecimal lunchDeliveryFee) {
+        this.lunchDeliveryFee = validateDeliveryFee(lunchDeliveryFee);
+    }
+
+    /** Taxa por entrega do jantar; {@code null} quando a entrega do jantar nao e cobrada. */
+    public BigDecimal getDinnerDeliveryFee() {
+        return dinnerDeliveryFee;
+    }
+
+    public void setDinnerDeliveryFee(BigDecimal dinnerDeliveryFee) {
+        this.dinnerDeliveryFee = validateDeliveryFee(dinnerDeliveryFee);
     }
 
     /**
@@ -124,6 +138,13 @@ public class Restaurant extends Audited {
     @Override
     public int hashCode() {
         return Objects.hashCode(id);
+    }
+
+    private static BigDecimal validateDeliveryFee(BigDecimal deliveryFee) {
+        if (deliveryFee != null && deliveryFee.compareTo(BigDecimal.ZERO) <= 0) {
+            throw InvalidRestaurantException.invalidDeliveryFee(deliveryFee);
+        }
+        return deliveryFee;
     }
 
     private static String validateName(String name) {

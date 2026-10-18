@@ -82,9 +82,10 @@ class RestaurantUseCaseTest {
         when(restaurantRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RestaurantResponseDTO response = useCase.create(new RestaurantRequestDTO("Cantina", null, addressRequest(),
-                project.getId(), new BigDecimal("8.00"), new BigDecimal("5.00")));
+                project.getId(), new BigDecimal("8.00"), new BigDecimal("10.00"), new BigDecimal("5.00")));
 
-        assertThat(response.deliveryFee()).isEqualByComparingTo("8.00");
+        assertThat(response.lunchDeliveryFee()).isEqualByComparingTo("8.00");
+        assertThat(response.dinnerDeliveryFee()).isEqualByComparingTo("10.00");
         assertThat(response.sodaPrice()).isEqualByComparingTo("5.00");
         assertThat(response.meals()).isEmpty();
         verify(mealRepository, never()).findByRestaurantIn(anyCollection());
@@ -96,7 +97,7 @@ class RestaurantUseCaseTest {
         when(projectRepository.findById(project.getId())).thenReturn(project);
 
         assertThatThrownBy(() -> useCase.create(new RestaurantRequestDTO("Cantina", null, null, project.getId(),
-                BigDecimal.ZERO, null)))
+                new BigDecimal("8.00"), BigDecimal.ZERO, null)))
                 .isInstanceOf(InvalidRestaurantException.class)
                 .extracting("errorCode").isEqualTo("restaurant.invalid.delivery_fee");
         verify(restaurantRepository, never()).save(any());

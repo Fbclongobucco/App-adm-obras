@@ -20,14 +20,16 @@ import java.util.stream.Stream;
 /**
  * Alimentacao contratada de uma obra junto a um restaurante, sem data: refeicoes servidas e,
  * para cada uma, quantidade e preco por dia. Cada refeicao servida e uma entrega por dia, cobrada
- * pela taxa do restaurante, com 1 refrigerante ao preco do restaurante quando ele fornece. Os custos
- * sao calculados a partir da obra e do restaurante atuais. Ajustes por data (dia extra e sem fornecimento)
- * entram no total estimado quando estao no periodo atual da obra.
+ * pela taxa do restaurante para aquela refeicao (almoco ou jantar), com 1 refrigerante ao preco do
+ * restaurante quando ele fornece. Os custos sao calculados a partir da obra e do restaurante atuais.
+ * Ajustes por data (dia extra, dia alterado e sem fornecimento) entram no total estimado quando estao no
+ * periodo atual da obra.
  */
 public class Meal extends Audited {
 
     private static final int MIN_QUANTITY = 1;
     private static final int MAX_QUANTITY = 10000;
+    private static final int MAX_DELIVERIES = 100;
 
     private UUID id;
     private Restaurant restaurant;
@@ -163,9 +165,19 @@ public class Meal extends Audited {
         return daily;
     }
 
-    /** Entregas por dia x taxa de entrega do restaurante; zero quando o restaurante nao cobra entrega. */
+    /**
+     * Uma entrega por refeicao servida, cada uma pela taxa do restaurante para aquela refeicao; taxa vazia
+     * conta zero.
+     */
     public BigDecimal getDeliveryDailyPrice() {
-        return perDelivery(restaurant.getDeliveryFee());
+        BigDecimal daily = BigDecimal.ZERO;
+        if (mealType.servesLunch() && restaurant.getLunchDeliveryFee() != null) {
+            daily = daily.add(restaurant.getLunchDeliveryFee());
+        }
+        if (mealType.servesDinner() && restaurant.getDinnerDeliveryFee() != null) {
+            daily = daily.add(restaurant.getDinnerDeliveryFee());
+        }
+        return daily;
     }
 
     /** Entregas por dia x preco do refrigerante do restaurante; zero quando o restaurante nao fornece. */
@@ -213,6 +225,11 @@ public class Meal extends Audited {
         return (int) adjustmentsInPeriod(MealAdjustment.Type.EXTRA_DAY).count();
     }
 
+    /** Dias alterados dentro do periodo atual da obra. */
+    public int getChangedDays() {
+        return (int) adjustmentsInPeriod(MealAdjustment.Type.CHANGED).count();
+    }
+
     /** Soma do valor dos dias extras dentro do periodo atual da obra. */
     public BigDecimal getExtraDaysPrice() {
         return adjustmentsInPeriod(MealAdjustment.Type.EXTRA_DAY)
@@ -227,44 +244,64 @@ public class Meal extends Audited {
     }
 
     /**
-     * Custo por dia (com entrega e refrigerante) x dias de fornecimento + dias extras; {@code null} se a obra
-     * nao tem data de termino.
+     * Soma do valor de cada dia do periodo da obra ({@link #dayClosing}), o mesmo calculo do fechamento
+     * semanal; {@code null} se a obra nao tem data de termino.
      */
     public BigDecimal getTotalPrice() {
-        Integer serviceDays = getServiceDays();
-        return serviceDays == null ? null
-                : getDailyPrice().multiply(BigDecimal.valueOf(serviceDays)).add(getExtraDaysPrice());
+        if (project == null || project.getStartDate() == null || project.getEndDate() == null) {
+            return null;
+        }
+        BigDecimal total = BigDecimal.ZERO;
+        for (LocalDate date = project.getStartDate(); !date.isAfter(project.getEndDate()); date = date.plusDays(1)) {
+            total = total.add(dayClosing(date).price());
+        }
+        return total;
     }
 
     /**
-     * Fechamento do dia: fora do periodo da obra; ajuste na data (sem fornecimento zerado, dia extra com os
-     * numeros do ajuste); sabado ou domingo sem ajuste; senao o fornecimento diario contratado.
+     * Fechamento do dia: fora do periodo da obra; ajuste na data (sem fornecimento zerado, dia extra e dia
+     * alterado com os numeros do ajuste); sabado ou domingo sem ajuste; senao o fornecimento diario contratado.
      */
     public DayClosing dayClosing(LocalDate date) {
         if (date == null || !isWithinProject(date)) {
-            return DayClosing.empty(date, DayClosing.Status.OUT_OF_PERIOD);
+            return DayClosing.empty(date, id, DayClosing.Status.OUT_OF_PERIOD);
         }
-        Optional<MealAdjustment> adjustment = adjustments.stream()
-                .filter(existing -> date.equals(existing.getDate())).findFirst();
+        Optional<MealAdjustment> adjustment = findAdjustment(date);
         if (adjustment.isPresent()) {
             MealAdjustment found = adjustment.get();
-            List<UUID> ids = List.of(found.getId());
-            if (found.getType() == MealAdjustment.Type.NO_SERVICE) {
-                return new DayClosing(date, DayClosing.Status.NO_SERVICE, false, 0, 0, 0, 0, BigDecimal.ZERO, ids);
-            }
-            return new DayClosing(date, DayClosing.Status.EXTRA_DAY, false,
-                    mealType.servesLunch() && found.getLunchQuantity() != null ? found.getLunchQuantity() : 0,
-                    mealType.servesDinner() && found.getDinnerQuantity() != null ? found.getDinnerQuantity() : 0,
-                    found.deliveries(this), found.sodas(this), found.price(this), ids);
+            DayClosing.Status status = switch (found.getType()) {
+                case NO_SERVICE -> DayClosing.Status.NO_SERVICE;
+                case CHANGED -> DayClosing.Status.CHANGED;
+                case EXTRA_DAY -> DayClosing.Status.EXTRA_DAY;
+            };
+            return new DayClosing(date, id, status, false, found.lunchMeals(this), found.dinnerMeals(this),
+                    found.lunchDeliveries(this), found.dinnerDeliveries(this), found.sodas(this), found.price(this),
+                    List.of(found.getId()), found.getNote(), List.of());
         }
         if (isWeekend(date)) {
-            return DayClosing.empty(date, DayClosing.Status.OFF);
+            return DayClosing.empty(date, id, DayClosing.Status.OFF);
         }
-        int deliveries = getDeliveriesPerDay();
-        return new DayClosing(date, DayClosing.Status.SERVICE, false,
+        int lunchDeliveries = mealType.servesLunch() ? 1 : 0;
+        int dinnerDeliveries = mealType.servesDinner() ? 1 : 0;
+        return new DayClosing(date, id, DayClosing.Status.SERVICE, false,
                 mealType.servesLunch() ? lunchQuantity : 0,
                 mealType.servesDinner() ? dinnerQuantity : 0,
-                deliveries, getSodaPrice() == null ? 0 : deliveries, getDailyPrice(), List.of());
+                lunchDeliveries, dinnerDeliveries, getSodaPrice() == null ? 0 : lunchDeliveries + dinnerDeliveries,
+                getDailyPrice(), List.of(), null, List.of());
+    }
+
+    /**
+     * Numeros do dia iguais ao fornecimento contratado: mesmas quantidades, 1 entrega por refeicao servida e,
+     * com refrigerante, 1 por entrega. Usado pelo restaurante para nao gravar dia alterado sem efeito.
+     */
+    public boolean isDefaultDay(MealAdjustment adjustment) {
+        int lunchDeliveries = mealType.servesLunch() ? 1 : 0;
+        int dinnerDeliveries = mealType.servesDinner() ? 1 : 0;
+        return adjustment.lunchMeals(this) == (mealType.servesLunch() ? lunchQuantity : 0)
+                && adjustment.dinnerMeals(this) == (mealType.servesDinner() ? dinnerQuantity : 0)
+                && adjustment.lunchDeliveries(this) == lunchDeliveries
+                && adjustment.dinnerDeliveries(this) == dinnerDeliveries
+                && adjustment.sodas(this) == (getSodaPrice() == null ? 0 : lunchDeliveries + dinnerDeliveries);
     }
 
     /** Ajustes por data, ordenados por data. Leitura apenas: inclusao por {@link #addAdjustment}. */
@@ -279,10 +316,14 @@ public class Meal extends Audited {
         return adjustments.stream().filter(adjustment -> adjustment.getId().equals(adjustmentId)).findFirst();
     }
 
+    /** Ajuste da data, se houver (no maximo um por data). */
+    public Optional<MealAdjustment> findAdjustment(LocalDate date) {
+        return adjustments.stream().filter(adjustment -> date.equals(adjustment.getDate())).findFirst();
+    }
+
     /**
-     * Inclui o ajuste depois de validar, nesta ordem: data no periodo da obra, data nao repetida, dia extra
-     * so no fim de semana, sem fornecimento so em dia util e quantidades. No dia extra, a quantidade de
-     * refeicao nao servida pelo tipo e descartada. Nada muda se a validacao falhar.
+     * Inclui o ajuste depois de validar (ver {@link #accept}); data repetida e conflito. Nada muda se a
+     * validacao falhar.
      *
      * @return o ajuste incluido
      */
@@ -291,31 +332,36 @@ public class Meal extends Audited {
             throw InvalidMealAdjustmentException.missingType();
         }
         LocalDate date = adjustment.getDate();
-        if (date == null || !isWithinProject(date)) {
-            throw InvalidMealAdjustmentException.dateOutsideProject(date,
-                    project == null ? null : project.getStartDate(), project == null ? null : project.getEndDate());
-        }
+        requireInProject(date);
         if (adjustments.stream().anyMatch(existing -> date.equals(existing.getDate())
                 && !existing.getId().equals(adjustment.getId()))) {
             throw InvalidMealAdjustmentException.duplicateDate(date);
         }
-        boolean weekend = isWeekend(date);
-        MealAdjustment accepted;
-        if (adjustment.getType() == MealAdjustment.Type.EXTRA_DAY) {
-            if (!weekend) {
-                throw InvalidMealAdjustmentException.extraDayOnWeekday(date);
-            }
-            accepted = extraDayQuantities(adjustment);
-        } else {
-            if (weekend) {
-                throw InvalidMealAdjustmentException.noServiceOnWeekend(date);
-            }
-            if (adjustment.getLunchQuantity() != null || adjustment.getDinnerQuantity() != null) {
-                throw InvalidMealAdjustmentException.invalidQuantity("No service must not have quantities");
-            }
-            accepted = adjustment;
-        }
+        MealAdjustment accepted = accept(adjustment);
         adjustments.removeIf(existing -> existing.getId().equals(accepted.getId()));
+        adjustments.add(accepted);
+        return accepted;
+    }
+
+    /**
+     * Grava o ajuste da data: substitui o existente, mantendo o id e a auditoria dele, ou inclui. Mesmas regras
+     * de {@link #addAdjustment}, sem o conflito de data. Nada muda se a validacao falhar.
+     *
+     * @return o ajuste gravado (com a auditoria do anterior, quando substituiu)
+     */
+    public MealAdjustment putAdjustment(MealAdjustment adjustment) {
+        if (adjustment == null) {
+            throw InvalidMealAdjustmentException.missingType();
+        }
+        requireInProject(adjustment.getDate());
+        Optional<MealAdjustment> existing = findAdjustment(adjustment.getDate());
+        MealAdjustment candidate = existing.map(previous -> {
+            MealAdjustment replacement = adjustment.withId(previous.getId());
+            replacement.restoreAudit(previous.getAudit());
+            return replacement;
+        }).orElse(adjustment);
+        MealAdjustment accepted = accept(candidate);
+        existing.ifPresent(previous -> adjustments.remove(previous));
         adjustments.add(accepted);
         return accepted;
     }
@@ -375,29 +421,91 @@ public class Meal extends Audited {
         return day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY;
     }
 
-    /** Quantidades das refeicoes servidas: obrigatorias, de 0 a 10000, ao menos uma maior que zero. */
-    private MealAdjustment extraDayQuantities(MealAdjustment adjustment) {
-        Integer lunch = mealType.servesLunch() ? validateAdjustmentQuantity(adjustment.getLunchQuantity(), "Lunch")
-                : null;
-        Integer dinner = mealType.servesDinner()
-                ? validateAdjustmentQuantity(adjustment.getDinnerQuantity(), "Dinner") : null;
-        if ((lunch == null || lunch == 0) && (dinner == null || dinner == 0)) {
-            throw InvalidMealAdjustmentException.invalidQuantity(
-                    "Extra day must have at least one quantity greater than zero");
+    private void requireInProject(LocalDate date) {
+        if (date == null || !isWithinProject(date)) {
+            throw InvalidMealAdjustmentException.dateOutsideProject(date,
+                    project == null ? null : project.getStartDate(), project == null ? null : project.getEndDate());
         }
-        if (Objects.equals(lunch, adjustment.getLunchQuantity())
-                && Objects.equals(dinner, adjustment.getDinnerQuantity())) {
+    }
+
+    /**
+     * Regras do ajuste, nesta ordem: tipo x dia da semana, quantidades, entregas e refrigerantes. Sem
+     * fornecimento nao tem numeros. No dia extra e no dia alterado, os numeros de refeicao nao servida pelo
+     * tipo sao descartados.
+     */
+    private MealAdjustment accept(MealAdjustment adjustment) {
+        LocalDate date = adjustment.getDate();
+        boolean weekend = isWeekend(date);
+        switch (adjustment.getType()) {
+            case EXTRA_DAY -> {
+                if (!weekend) {
+                    throw InvalidMealAdjustmentException.extraDayOnWeekday(date);
+                }
+            }
+            case CHANGED -> {
+                if (weekend) {
+                    throw InvalidMealAdjustmentException.changedDayOnWeekend(date);
+                }
+            }
+            case NO_SERVICE -> {
+                if (weekend) {
+                    throw InvalidMealAdjustmentException.noServiceOnWeekend(date);
+                }
+                if (adjustment.getLunchQuantity() != null || adjustment.getDinnerQuantity() != null
+                        || adjustment.getLunchDeliveries() != null || adjustment.getDinnerDeliveries() != null
+                        || adjustment.getSodas() != null) {
+                    throw InvalidMealAdjustmentException.invalidQuantity("No service must not have quantities");
+                }
+                return adjustment;
+            }
+        }
+        boolean lunch = mealType.servesLunch();
+        boolean dinner = mealType.servesDinner();
+        Integer lunchMeals = lunch ? validateAdjustmentQuantity(adjustment.getLunchQuantity(), "Lunch") : null;
+        Integer dinnerMeals = dinner ? validateAdjustmentQuantity(adjustment.getDinnerQuantity(), "Dinner") : null;
+        if ((lunchMeals == null || lunchMeals == 0) && (dinnerMeals == null || dinnerMeals == 0)) {
+            throw InvalidMealAdjustmentException.invalidQuantity(
+                    "Adjustment must have at least one quantity greater than zero");
+        }
+        Integer lunchDeliveries = lunch ? validateDeliveries(adjustment.getLunchDeliveries(), lunchMeals) : null;
+        Integer dinnerDeliveries = dinner
+                ? validateDeliveries(adjustment.getDinnerDeliveries(), dinnerMeals) : null;
+        Integer sodas = adjustment.getSodas();
+        if (sodas != null && (sodas < 0 || sodas > MAX_QUANTITY)) {
+            throw InvalidMealAdjustmentException.invalidSodas(sodas);
+        }
+        if (sodas != null && sodas > 0 && getSodaPrice() == null) {
+            throw InvalidMealAdjustmentException.sodaNotSupplied(sodas);
+        }
+        if (Objects.equals(lunchMeals, adjustment.getLunchQuantity())
+                && Objects.equals(dinnerMeals, adjustment.getDinnerQuantity())
+                && Objects.equals(lunchDeliveries, adjustment.getLunchDeliveries())
+                && Objects.equals(dinnerDeliveries, adjustment.getDinnerDeliveries())) {
             return adjustment;
         }
-        return adjustment.withQuantities(lunch, dinner);
+        return adjustment.withNumbers(lunchMeals, dinnerMeals, lunchDeliveries, dinnerDeliveries, sodas);
     }
 
     private static Integer validateAdjustmentQuantity(Integer quantity, String meal) {
         if (quantity == null || quantity < 0 || quantity > MAX_QUANTITY) {
             throw InvalidMealAdjustmentException.invalidQuantity(
-                    meal + " quantity of an extra day must be between 0 and 10000: " + quantity);
+                    meal + " quantity of an adjustment must be between 0 and 10000: " + quantity);
         }
         return quantity;
+    }
+
+    /** Opcional (vazio = padrao), de 0 a 100, e zero quando a refeicao nao tem quantidade no dia. */
+    private static Integer validateDeliveries(Integer deliveries, Integer meals) {
+        if (deliveries == null) {
+            return null;
+        }
+        if (deliveries < 0 || deliveries > MAX_DELIVERIES) {
+            throw InvalidMealAdjustmentException.invalidDeliveries(deliveries);
+        }
+        if (deliveries > 0 && (meals == null || meals == 0)) {
+            throw InvalidMealAdjustmentException.deliveryWithoutMeal(deliveries);
+        }
+        return deliveries;
     }
 
     private BigDecimal perDelivery(BigDecimal unitPrice) {

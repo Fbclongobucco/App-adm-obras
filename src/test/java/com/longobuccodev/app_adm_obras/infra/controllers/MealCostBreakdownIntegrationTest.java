@@ -53,7 +53,8 @@ class MealCostBreakdownIntegrationTest {
 
     private Map<String, Object> restaurantWith(String projectId, Object fee, Object sodaPrice) {
         Map<String, Object> body = api.restaurantBody(projectId);
-        body.put("deliveryFee", fee);
+        body.put("lunchDeliveryFee", fee);
+        body.put("dinnerDeliveryFee", fee);
         body.put("sodaPrice", sodaPrice);
         return body;
     }
@@ -68,7 +69,7 @@ class MealCostBreakdownIntegrationTest {
 
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         Map meal = api.get("/api/meals/" + created.getBody().get("id")).getBody();
-        assertMoney(((Map) meal.get("restaurant")).get("deliveryFee"), "8.00");
+        assertMoney(((Map) meal.get("restaurant")).get("lunchDeliveryFee"), "8.00");
         assertMoney(((Map) meal.get("restaurant")).get("sodaPrice"), "5.00");
         assertMoney(meal.get("sodaPrice"), "5.00");
         assertThat(meal).containsEntry("deliveriesPerDay", 2).containsEntry("workingDays", 10);
@@ -92,7 +93,7 @@ class MealCostBreakdownIntegrationTest {
 
         Map project = api.get("/api/projects/" + projectId).getBody();
         assertMoney(project.get("totalPrice"), "4520.00");
-        assertMoney(((Map) ((List) project.get("restaurants")).get(0)).get("deliveryFee"), "8.00");
+        assertMoney(((Map) ((List) project.get("restaurants")).get(0)).get("lunchDeliveryFee"), "8.00");
         assertMoney(((Map) ((List) project.get("restaurants")).get(0)).get("sodaPrice"), "5.00");
     }
 
@@ -104,7 +105,7 @@ class MealCostBreakdownIntegrationTest {
         Map meal = api.post("/api/meals", api.mealBody(restaurantId, "LUNCH_AND_DINNER")).getBody();
 
         assertThat(meal.get("sodaPrice")).isNull();
-        assertThat(((Map) meal.get("restaurant")).get("deliveryFee")).isNull();
+        assertThat(((Map) meal.get("restaurant")).get("lunchDeliveryFee")).isNull();
         assertMoney(meal.get("deliveryDailyPrice"), "0");
         assertMoney(meal.get("sodaDailyPrice"), "0");
         assertMoney(meal.get("dailyPrice"), "426.00");
@@ -122,7 +123,7 @@ class MealCostBreakdownIntegrationTest {
         String dinner = api.create("/api/meals", api.mealBody(withMeal, "DINNER"));
 
         Map detail = api.get("/api/restaurants/" + withMeal).getBody();
-        assertMoney(detail.get("deliveryFee"), "8.00");
+        assertMoney(detail.get("lunchDeliveryFee"), "8.00");
         assertMoney(detail.get("sodaPrice"), "5.00");
         List<Map> meals = (List<Map>) detail.get("meals");
         assertThat(meals).extracting(item -> item.get("id")).containsExactly(lunch, dinner);
@@ -156,7 +157,8 @@ class MealCostBreakdownIntegrationTest {
         String restaurantId = api.create("/api/restaurants", restaurant);
         String mealId = api.create("/api/meals", api.mealBody(restaurantId, "LUNCH"));
 
-        restaurant.put("deliveryFee", 8);
+        restaurant.put("lunchDeliveryFee", 8);
+        restaurant.put("dinnerDeliveryFee", 8);
         ResponseEntity<Map> updated = api.put("/api/restaurants/" + restaurantId, restaurant);
 
         assertThat(updated.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -231,7 +233,7 @@ class MealCostBreakdownIntegrationTest {
 
         Map<String, Object> restaurantBody = api.restaurantBody(projectId);
         String restaurantId = api.create("/api/restaurants", restaurantBody);
-        restaurantBody.put("deliveryFee", 0);
+        restaurantBody.put("dinnerDeliveryFee", 0);
         assertThat(api.put("/api/restaurants/" + restaurantId, restaurantBody).getBody())
                 .containsEntry("errorCode", "restaurant.invalid.delivery_fee");
 
@@ -240,13 +242,14 @@ class MealCostBreakdownIntegrationTest {
             assertThat(created.getStatusCode()).as("sodaPrice=" + value).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(created.getBody()).containsEntry("errorCode", "restaurant.invalid.soda_price");
         }
-        restaurantBody.put("deliveryFee", null);
+        restaurantBody.put("dinnerDeliveryFee", null);
         restaurantBody.put("sodaPrice", -1);
         assertThat(api.put("/api/restaurants/" + restaurantId, restaurantBody).getBody())
                 .containsEntry("errorCode", "restaurant.invalid.soda_price");
         Map stored = api.get("/api/restaurants/" + restaurantId).getBody();
         assertThat(stored.get("sodaPrice")).isNull();
-        assertThat(stored.get("deliveryFee")).isNull();
+        assertThat(stored.get("lunchDeliveryFee")).isNull();
+        assertThat(stored.get("dinnerDeliveryFee")).isNull();
     }
 
     /** Todas as paginas de GET /api/restaurants (o banco H2 e compartilhado entre as classes de teste). */

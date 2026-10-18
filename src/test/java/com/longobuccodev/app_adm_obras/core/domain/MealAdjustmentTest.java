@@ -73,7 +73,8 @@ class MealAdjustmentTest {
     @DisplayName("dia extra sem taxa nem refrigerante soma so as marmitas")
     void shouldPriceExtraDayWithoutFeeNorSoda() {
         Meal meal = MealAdjustmentRulesTest.lunchAndDinner452();
-        meal.getRestaurant().setDeliveryFee(null);
+        meal.getRestaurant().setLunchDeliveryFee(null);
+        meal.getRestaurant().setDinnerDeliveryFee(null);
         meal.getRestaurant().setSodaPrice(null);
 
         MealAdjustment adjustment = new MealAdjustment(null, SATURDAY, Type.EXTRA_DAY, 6, 0, null);

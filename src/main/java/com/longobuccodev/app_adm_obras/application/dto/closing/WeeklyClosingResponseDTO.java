@@ -15,7 +15,7 @@ public record WeeklyClosingResponseDTO(
         Totals totals
 ) {
 
-    /** {@code serviceDays}: dias com fornecimento (normal ou dia extra). */
+    /** {@code serviceDays}: dias com fornecimento (normal, alterado ou dia extra). */
     public record Totals(int serviceDays, int lunchMeals, int dinnerMeals, int deliveries, int sodas,
                          BigDecimal price) {
     }

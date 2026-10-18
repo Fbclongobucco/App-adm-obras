@@ -1,6 +1,7 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
 import com.longobuccodev.app_adm_obras.application.dto.closing.RestaurantAdjustmentRequestDTO;
+import com.longobuccodev.app_adm_obras.application.dto.closing.RestaurantDayRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.closing.WeeklyClosingResponseDTO;
 import com.longobuccodev.app_adm_obras.application.dto.common.PageResponseDTO;
 import com.longobuccodev.app_adm_obras.application.dto.meal.MealAdjustmentResponseDTO;
@@ -31,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -127,6 +129,66 @@ public class RestaurantUseCase {
         }
         mealRepository.updateAll(changed);
         return added;
+    }
+
+    /**
+     * Numeros do dia em todas as refeicoes do restaurante (ver {@link RestaurantDayRequestDTO}). As regras de
+     * cada refeicao rodam antes de gravar e a gravacao e unica: qualquer erro deixa todas como estavam.
+     */
+    public void putDay(UUID id, LocalDate date, RestaurantDayRequestDTO dto) {
+        if (dto.type() != MealAdjustment.Type.EXTRA_DAY && dto.type() != MealAdjustment.Type.CHANGED) {
+            throw InvalidMealAdjustmentException.missingType();
+        }
+        List<Meal> meals = mealsOf(findRestaurant(id));
+        Map<UUID, RestaurantDayRequestDTO.MealDay> numbers = new HashMap<>();
+        for (RestaurantDayRequestDTO.MealDay day
+                : dto.meals() == null ? List.<RestaurantDayRequestDTO.MealDay>of() : dto.meals()) {
+            if (meals.stream().noneMatch(meal -> meal.getId().equals(day.mealId()))) {
+                throw ResourceNotFoundException.meal(day.mealId());
+            }
+            numbers.put(day.mealId(), day);
+        }
+        Instant now = clock.instant();
+        List<Meal> changed = new ArrayList<>();
+        boolean anyServed = false;
+        for (Meal meal : meals) {
+            RestaurantDayRequestDTO.MealDay day = numbers.get(meal.getId());
+            if (day == null) {
+                continue;
+            }
+            boolean served = positive(day.lunchQuantity()) || positive(day.dinnerQuantity());
+            anyServed |= served;
+            if (!served && (positive(day.lunchDeliveries()) || positive(day.dinnerDeliveries()))) {
+                throw InvalidMealAdjustmentException.deliveryWithoutMeal(
+                        positive(day.lunchDeliveries()) ? day.lunchDeliveries() : day.dinnerDeliveries());
+            }
+            if (!served && dto.type() == MealAdjustment.Type.EXTRA_DAY) {
+                Optional<MealAdjustment> existing = meal.findAdjustment(date);
+                if (existing.isEmpty()) {
+                    continue;
+                }
+                meal.removeAdjustment(existing.get().getId());
+            } else if (!served) {
+                meal.putAdjustment(new MealAdjustment(null, date, MealAdjustment.Type.NO_SERVICE, null, null,
+                        dto.note())).touch(now);
+            } else {
+                MealAdjustment saved = meal.putAdjustment(new MealAdjustment(null, date, dto.type(),
+                        orZero(day.lunchQuantity()), orZero(day.dinnerQuantity()), day.lunchDeliveries(),
+                        day.dinnerDeliveries(), day.sodas(), dto.note()));
+                if (dto.type() == MealAdjustment.Type.CHANGED && meal.isDefaultDay(saved)) {
+                    meal.removeAdjustment(saved.getId());
+                } else {
+                    saved.touch(now);
+                }
+            }
+            meal.touch(now);
+            changed.add(meal);
+        }
+        if (!anyServed) {
+            throw InvalidMealAdjustmentException.invalidQuantity(
+                    "Restaurant day must have at least one meal with quantity greater than zero");
+        }
+        mealRepository.updateAll(changed);
     }
 
     /** Remove os ajustes da data em todas as refeicoes do restaurante. */

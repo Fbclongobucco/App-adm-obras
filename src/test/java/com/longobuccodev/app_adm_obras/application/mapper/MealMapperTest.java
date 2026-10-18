@@ -70,7 +70,7 @@ class MealMapperTest {
 
         MealResponseDTO response = MealMapper.toResponse(meal);
 
-        assertThat(response.restaurant().deliveryFee()).isEqualByComparingTo("8.00");
+        assertThat(response.restaurant().lunchDeliveryFee()).isEqualByComparingTo("8.00");
         assertThat(response.restaurant().sodaPrice()).isEqualByComparingTo("5.00");
         assertThat(response.sodaPrice()).isEqualByComparingTo("5.00");
         assertThat(response.deliveriesPerDay()).isEqualTo(2);

@@ -92,7 +92,8 @@ class MealTest {
     void shouldFollowRestaurantDeliveryFeeChanges() {
         Meal meal = lunchAndDinner();
 
-        meal.getRestaurant().setDeliveryFee(DELIVERY_FEE);
+        meal.getRestaurant().setLunchDeliveryFee(DELIVERY_FEE);
+        meal.getRestaurant().setDinnerDeliveryFee(DELIVERY_FEE);
 
         assertThat(meal.getDeliveryDailyPrice()).isEqualByComparingTo("16.00");
         assertThat(meal.getDailyPrice()).isEqualByComparingTo("442.00");

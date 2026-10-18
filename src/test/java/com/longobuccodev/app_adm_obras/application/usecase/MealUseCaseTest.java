@@ -160,7 +160,7 @@ class MealUseCaseTest {
         when(mealRepository.findById(meal.getId())).thenReturn(meal);
 
         MealAdjustmentResponseDTO response = useCase.addAdjustment(meal.getId(), new MealAdjustmentRequestDTO(
-                LocalDate.of(2026, 10, 12), MealAdjustment.Type.NO_SERVICE, null, null, "Feriado"));
+                LocalDate.of(2026, 10, 12), MealAdjustment.Type.NO_SERVICE, null, null, null, null, null, "Feriado"));
 
         assertThat(response.type()).isEqualTo(MealAdjustment.Type.NO_SERVICE);
         assertThat(response.inPeriod()).isTrue();
@@ -178,7 +178,7 @@ class MealUseCaseTest {
         when(mealRepository.findById(meal.getId())).thenReturn(meal);
 
         assertThatThrownBy(() -> useCase.addAdjustment(meal.getId(), new MealAdjustmentRequestDTO(
-                LocalDate.of(2026, 10, 7), MealAdjustment.Type.EXTRA_DAY, 6, 0, null)))
+                LocalDate.of(2026, 10, 7), MealAdjustment.Type.EXTRA_DAY, 6, 0, null, null, null, null)))
                 .extracting("errorCode").isEqualTo("meal.adjustment.invalid.extra_day");
         verify(mealRepository, never()).update(any());
     }

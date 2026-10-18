@@ -32,17 +32,23 @@ import java.util.UUID;
 public class MealController {
 
     private static final String ADJUSTMENT_RULES = "type: EXTRA_DAY (sabado ou domingo com fornecimento, soma ao "
-            + "total) ou NO_SERVICE (dia util sem fornecimento, desconta um dia util). Regras, nesta ordem: data "
-            + "dentro do periodo da obra, >= inicio e <= termino quando houver (400 meal.adjustment.invalid.date); "
-            + "uma data por refeicao (409 meal.adjustment.duplicate.date); EXTRA_DAY so sabado ou domingo (400 "
-            + "meal.adjustment.invalid.extra_day); NO_SERVICE so de segunda a sexta (400 "
-            + "meal.adjustment.invalid.no_service); EXTRA_DAY exige lunchQuantity/dinnerQuantity das refeicoes "
-            + "servidas pelo tipo, inteiros de 0 a 10000 com ao menos um maior que zero, e ignora o da refeicao "
-            + "nao servida; NO_SERVICE nao aceita quantidades (400 meal.adjustment.invalid.quantity). type ausente: "
-            + "400 meal.adjustment.invalid.type; note ate 100 caracteres: 400 meal.adjustment.invalid.note. "
-            + "Valor do dia extra: soma de quantidade x preco das refeicoes com quantidade > 0, mais uma entrega "
-            + "por refeicao com quantidade > 0 x deliveryFee do restaurante, mais um refrigerante por entrega x "
-            + "sodaPrice do restaurante quando houver. Resposta 201 com o ajuste.";
+            + "total), CHANGED (dia util com outros numeros, substitui o custo por dia) ou NO_SERVICE (dia util "
+            + "sem fornecimento). Regras, nesta ordem: data dentro do periodo da obra, >= inicio e <= termino "
+            + "quando houver (400 meal.adjustment.invalid.date); uma data por refeicao no POST (409 "
+            + "meal.adjustment.duplicate.date); EXTRA_DAY so sabado ou domingo (400 "
+            + "meal.adjustment.invalid.extra_day); CHANGED so de segunda a sexta (400 "
+            + "meal.adjustment.invalid.changed_day); NO_SERVICE so de segunda a sexta (400 "
+            + "meal.adjustment.invalid.no_service); EXTRA_DAY e CHANGED exigem lunchQuantity/dinnerQuantity das "
+            + "refeicoes servidas pelo tipo, inteiros de 0 a 10000 com ao menos um maior que zero, e ignoram os "
+            + "da refeicao nao servida; NO_SERVICE nao aceita numeros (400 meal.adjustment.invalid.quantity). "
+            + "lunchDeliveries/dinnerDeliveries opcionais, 0 a 100 (400 meal.adjustment.invalid.deliveries), zero "
+            + "na refeicao sem quantidade (400 meal.adjustment.invalid.delivery_without_meal); vazio = 1 por "
+            + "refeicao com quantidade. sodas opcional, 0 a 10000 (400 meal.adjustment.invalid.sodas), zero quando "
+            + "o restaurante nao fornece (400 meal.adjustment.invalid.soda_not_supplied); vazio = 1 por entrega "
+            + "quando o restaurante fornece. type ausente: 400 meal.adjustment.invalid.type; note ate 100 "
+            + "caracteres: 400 meal.adjustment.invalid.note. Valor do dia: quantidade x preco de cada refeicao, "
+            + "mais entregas do almoco x lunchDeliveryFee e do jantar x dinnerDeliveryFee do restaurante, mais "
+            + "refrigerantes x sodaPrice do restaurante.";
 
     private final MealUseCase mealUseCase;
 
@@ -61,12 +67,14 @@ public class MealController {
                     + "sodaPrice nao e lido (o refrigerante e do restaurante; ignorado se enviado). "
                     + "Resposta: sodaPrice = sodaPrice do restaurante; deliveriesPerDay = 1 por refeicao servida (2 em "
                     + "LUNCH_AND_DINNER); mealsDailyPrice = soma de quantidade x preco; deliveryDailyPrice = "
-                    + "deliveriesPerDay x deliveryFee do restaurante (0 sem taxa); sodaDailyPrice = "
+                    + "lunchDeliveryFee (se serve almoco) + dinnerDeliveryFee (se serve jantar) do restaurante (taxa vazia "
+                    + "conta 0); sodaDailyPrice = "
                     + "deliveriesPerDay x sodaPrice do restaurante (0 sem refrigerante); dailyPrice = soma das tres parcelas; "
                     + "workingDays = dias de segunda a sexta entre inicio e termino da obra, inclusive, sem "
                     + "feriados; serviceDays = workingDays - noServiceDays; noServiceDays/extraDays = ajustes NO_SERVICE/"
-                    + "EXTRA_DAY no periodo atual da obra; extraDaysPrice = soma dos dias extras no periodo; "
-                    + "totalPrice = dailyPrice x serviceDays + extraDaysPrice (null sem termino da obra); "
+                    + "EXTRA_DAY no periodo atual da obra; changedDays = ajustes CHANGED no periodo; extraDaysPrice = soma "
+                    + "dos dias extras no periodo; "
+                    + "totalPrice = soma do valor de cada dia do periodo, como no fechamento (null sem termino da obra); "
                     + "adjustments = ajustes por data, por data; projections = "
                     + "DAY (1), WEEK (5), FORTNIGHT (10) e MONTH (22 dias uteis) com lunchMeals, dinnerMeals, "
                     + "deliveries, sodas e price = dailyPrice x dias.")
@@ -106,12 +114,14 @@ public class MealController {
                     + "sodaPrice nao e lido (o refrigerante e do restaurante; ignorado se enviado). "
                     + "Resposta: sodaPrice = sodaPrice do restaurante; deliveriesPerDay = 1 por refeicao servida (2 em "
                     + "LUNCH_AND_DINNER); mealsDailyPrice = soma de quantidade x preco; deliveryDailyPrice = "
-                    + "deliveriesPerDay x deliveryFee do restaurante (0 sem taxa); sodaDailyPrice = "
+                    + "lunchDeliveryFee (se serve almoco) + dinnerDeliveryFee (se serve jantar) do restaurante (taxa vazia "
+                    + "conta 0); sodaDailyPrice = "
                     + "deliveriesPerDay x sodaPrice do restaurante (0 sem refrigerante); dailyPrice = soma das tres parcelas; "
                     + "workingDays = dias de segunda a sexta entre inicio e termino da obra, inclusive, sem "
                     + "feriados; serviceDays = workingDays - noServiceDays; noServiceDays/extraDays = ajustes NO_SERVICE/"
-                    + "EXTRA_DAY no periodo atual da obra; extraDaysPrice = soma dos dias extras no periodo; "
-                    + "totalPrice = dailyPrice x serviceDays + extraDaysPrice (null sem termino da obra); "
+                    + "EXTRA_DAY no periodo atual da obra; changedDays = ajustes CHANGED no periodo; extraDaysPrice = soma "
+                    + "dos dias extras no periodo; "
+                    + "totalPrice = soma do valor de cada dia do periodo, como no fechamento (null sem termino da obra); "
                     + "adjustments = ajustes por data, por data; projections = "
                     + "DAY (1), WEEK (5), FORTNIGHT (10) e MONTH (22 dias uteis) com lunchMeals, dinnerMeals, "
                     + "deliveries, sodas e price = dailyPrice x dias.")
@@ -152,11 +162,23 @@ public class MealController {
     }
 
     @Operation(summary = "Inclui um ajuste por data na refeicao",
-            description = ADJUSTMENT_RULES)
+            description = ADJUSTMENT_RULES + " Resposta 201 com o ajuste.")
     @PostMapping("/{id}/adjustments")
     public ResponseEntity<MealAdjustmentResponseDTO> addAdjustment(@PathVariable UUID id,
                                                                    @RequestBody MealAdjustmentRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(mealUseCase.addAdjustment(id, dto));
+    }
+
+    @Operation(summary = "Grava o ajuste da data na refeicao (cria ou substitui)",
+            description = "A data e a do caminho (date do corpo e ignorada). Substitui o ajuste existente na data, "
+                    + "mantendo o id, ou inclui um novo. " + ADJUSTMENT_RULES + " Sem o 409 de data repetida. "
+                    + "Resposta 200 com o ajuste.")
+    @PutMapping("/{id}/adjustments/{date}")
+    public ResponseEntity<MealAdjustmentResponseDTO> putAdjustment(
+            @PathVariable UUID id,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestBody MealAdjustmentRequestDTO dto) {
+        return ResponseEntity.ok(mealUseCase.putAdjustment(id, date, dto));
     }
 
     @Operation(summary = "Remove um ajuste por data da refeicao",

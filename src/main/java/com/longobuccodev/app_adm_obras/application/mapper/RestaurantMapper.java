@@ -16,13 +16,13 @@ public final class RestaurantMapper {
 
     public static Restaurant toDomain(RestaurantRequestDTO dto, Project project) {
         return new Restaurant(null, dto.name(), dto.phone(), AddressMapper.toDomain(dto.address()), project,
-                dto.deliveryFee(), dto.sodaPrice());
+                dto.lunchDeliveryFee(), dto.dinnerDeliveryFee(), dto.sodaPrice());
     }
 
     public static Restaurant toDomain(Restaurant existing, RestaurantRequestDTO dto, Project project) {
         return new Restaurant(existing.getId(), dto.name(), dto.phone(),
                 AddressMapper.toDomain(AddressMapper.idOf(existing.getAddress()), dto.address()), project,
-                dto.deliveryFee(), dto.sodaPrice());
+                dto.lunchDeliveryFee(), dto.dinnerDeliveryFee(), dto.sodaPrice());
     }
 
     public static RestaurantSummaryDTO toSummary(Restaurant restaurant) {
@@ -30,7 +30,7 @@ public final class RestaurantMapper {
             return null;
         }
         return new RestaurantSummaryDTO(restaurant.getId(), restaurant.getName(), restaurant.getPhone(),
-                restaurant.getDeliveryFee(), restaurant.getSodaPrice(),
+                restaurant.getLunchDeliveryFee(), restaurant.getDinnerDeliveryFee(), restaurant.getSodaPrice(),
                 AddressMapper.toResponse(restaurant.getAddress()), restaurant.getCreatedAt(),
                 restaurant.getUpdatedAt());
     }
@@ -38,7 +38,7 @@ public final class RestaurantMapper {
     /** @param meals refeicoes servidas pelo restaurante */
     public static RestaurantResponseDTO toResponse(Restaurant restaurant, List<Meal> meals) {
         return new RestaurantResponseDTO(restaurant.getId(), restaurant.getName(), restaurant.getPhone(),
-                restaurant.getDeliveryFee(), restaurant.getSodaPrice(),
+                restaurant.getLunchDeliveryFee(), restaurant.getDinnerDeliveryFee(), restaurant.getSodaPrice(),
                 AddressMapper.toResponse(restaurant.getAddress()), ProjectMapper.toSummary(restaurant.getProject()),
                 meals == null ? List.of() : meals.stream().map(MealMapper::toSummary).toList(),
                 restaurant.getCreatedAt(), restaurant.getUpdatedAt());

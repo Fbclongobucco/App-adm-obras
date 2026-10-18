@@ -6,7 +6,8 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
- * {@code deliveryFee}: taxa por entrega, opcional (null = sem taxa). {@code sodaPrice}: preco unitario do
+ * {@code lunchDeliveryFee} e {@code dinnerDeliveryFee}: taxa por entrega do almoco e do jantar, opcionais
+ * (null = entrega da refeicao sem taxa). {@code sodaPrice}: preco unitario do
  * refrigerante, 1 por entrega em todas as refeicoes, opcional (null = nao fornece).
  */
 public record RestaurantRequestDTO(
@@ -14,7 +15,8 @@ public record RestaurantRequestDTO(
         String phone,
         AddressRequestDTO address,
         UUID projectId,
-        BigDecimal deliveryFee,
+        BigDecimal lunchDeliveryFee,
+        BigDecimal dinnerDeliveryFee,
         BigDecimal sodaPrice
 ) {
 }

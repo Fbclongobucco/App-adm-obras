@@ -103,6 +103,20 @@ public class MealUseCase {
         return MealAdjustmentMapper.toResponse(added, meal);
     }
 
+    /**
+     * Grava o ajuste da data (a do caminho): substitui o existente, mantendo o id, ou inclui. Mesmas regras da
+     * inclusao, sem o conflito de data.
+     */
+    public MealAdjustmentResponseDTO putAdjustment(UUID mealId, LocalDate date, MealAdjustmentRequestDTO dto) {
+        Meal meal = findMeal(mealId);
+        MealAdjustment saved = meal.putAdjustment(MealAdjustmentMapper.toDomain(dto, date));
+        Instant now = clock.instant();
+        saved.touch(now);
+        meal.touch(now);
+        mealRepository.update(meal);
+        return MealAdjustmentMapper.toResponse(saved, meal);
+    }
+
     public void removeAdjustment(UUID mealId, UUID adjustmentId) {
         Meal meal = findMeal(mealId);
         if (!meal.removeAdjustment(adjustmentId)) {

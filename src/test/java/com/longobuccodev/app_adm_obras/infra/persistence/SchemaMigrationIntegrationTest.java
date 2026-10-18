@@ -32,7 +32,7 @@ class SchemaMigrationIntegrationTest {
     @DisplayName("banco vazio deve receber todas as migracoes, e as entidades devem bater com o schema")
     void emptyDatabaseShouldBeMigratedAndMatchEntities() {
         assertThat(flyway.info().pending()).isEmpty();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("9");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("10");
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from information_schema.tables where table_name = 'refresh_token'", Integer.class))
                 .isEqualTo(1);

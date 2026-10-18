@@ -11,7 +11,7 @@ public class InvalidMealAdjustmentException extends CoreDomainException {
 
     public static InvalidMealAdjustmentException missingType() {
         return new InvalidMealAdjustmentException("meal.adjustment.invalid.type",
-                "Adjustment type must be EXTRA_DAY or NO_SERVICE");
+                "Adjustment type must be EXTRA_DAY, CHANGED or NO_SERVICE");
     }
 
     public static InvalidMealAdjustmentException invalidNote(String note) {
@@ -33,6 +33,31 @@ public class InvalidMealAdjustmentException extends CoreDomainException {
     public static InvalidMealAdjustmentException noServiceOnWeekend(LocalDate date) {
         return new InvalidMealAdjustmentException("meal.adjustment.invalid.no_service",
                 "No service must be a weekday (Monday to Friday): " + date);
+    }
+
+    public static InvalidMealAdjustmentException changedDayOnWeekend(LocalDate date) {
+        return new InvalidMealAdjustmentException("meal.adjustment.invalid.changed_day",
+                "Changed day must be a weekday (Monday to Friday); use an extra day on weekends: " + date);
+    }
+
+    public static InvalidMealAdjustmentException invalidDeliveries(Integer deliveries) {
+        return new InvalidMealAdjustmentException("meal.adjustment.invalid.deliveries",
+                "Deliveries of a day must be between 0 and 100: " + deliveries);
+    }
+
+    public static InvalidMealAdjustmentException deliveryWithoutMeal(Integer deliveries) {
+        return new InvalidMealAdjustmentException("meal.adjustment.invalid.delivery_without_meal",
+                "Deliveries must be zero for a meal without quantity: " + deliveries);
+    }
+
+    public static InvalidMealAdjustmentException invalidSodas(Integer sodas) {
+        return new InvalidMealAdjustmentException("meal.adjustment.invalid.sodas",
+                "Sodas of a day must be between 0 and 10000: " + sodas);
+    }
+
+    public static InvalidMealAdjustmentException sodaNotSupplied(Integer sodas) {
+        return new InvalidMealAdjustmentException("meal.adjustment.invalid.soda_not_supplied",
+                "Restaurant does not supply soda: " + sodas);
     }
 
     public static InvalidMealAdjustmentException invalidQuantity(String detail) {

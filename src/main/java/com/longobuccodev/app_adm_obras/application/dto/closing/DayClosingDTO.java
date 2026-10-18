@@ -10,7 +10,9 @@ import java.util.UUID;
 
 /**
  * Dia do fechamento. {@code partialNoService}: no restaurante, parte das refeicoes sem fornecimento.
- * {@code adjustmentIds}: ajustes por data que definem o dia.
+ * {@code deliveries}: entregas do almoco mais as do jantar. {@code adjustmentIds}: ajustes por data que definem
+ * o dia; {@code note}: observacao do ajuste. {@code meals}: no restaurante, os numeros de cada refeicao no dia;
+ * vazio no fechamento da refeicao.
  */
 public record DayClosingDTO(
         LocalDate date,
@@ -19,9 +21,18 @@ public record DayClosingDTO(
         boolean partialNoService,
         int lunchMeals,
         int dinnerMeals,
+        int lunchDeliveries,
+        int dinnerDeliveries,
         int deliveries,
         int sodas,
         BigDecimal price,
-        List<UUID> adjustmentIds
+        List<UUID> adjustmentIds,
+        String note,
+        List<MealDay> meals
 ) {
+
+    /** Numeros de uma refeicao do restaurante no dia. */
+    public record MealDay(UUID mealId, DayClosing.Status status, int lunchMeals, int dinnerMeals,
+                          int lunchDeliveries, int dinnerDeliveries, int sodas, BigDecimal price) {
+    }
 }
