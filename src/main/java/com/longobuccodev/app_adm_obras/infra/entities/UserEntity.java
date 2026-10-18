@@ -37,7 +37,7 @@ public class UserEntity extends AuditedEntity {
     @Column(name = "password_hash", nullable = false, length = 100)
     private String passwordHash;
 
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)

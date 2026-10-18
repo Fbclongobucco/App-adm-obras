@@ -32,10 +32,17 @@ class SchemaMigrationIntegrationTest {
     @DisplayName("banco vazio deve receber todas as migracoes, e as entidades devem bater com o schema")
     void emptyDatabaseShouldBeMigratedAndMatchEntities() {
         assertThat(flyway.info().pending()).isEmpty();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("8");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("9");
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from information_schema.tables where table_name = 'refresh_token'", Integer.class))
                 .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("V9 deve criar as tabelas de auditoria de alteracoes e de login")
+    void auditTablesShouldExist() {
+        assertThat(jdbcTemplate.queryForObject("select count(*) from information_schema.tables "
+                + "where table_name in ('change_audit', 'login_audit')", Integer.class)).isEqualTo(2);
     }
 
     @Test

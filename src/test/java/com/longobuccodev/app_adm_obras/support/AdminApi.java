@@ -24,10 +24,19 @@ public class AdminApi {
 
     private final TestRestTemplate rest;
     private final FakeDocuments documents = new FakeDocuments(SEQUENCE.incrementAndGet());
+    private final String email;
+    private final String password;
     private String token;
 
     public AdminApi(TestRestTemplate rest) {
+        this(rest, "admin@admin.com", "admin123");
+    }
+
+    /** Mesmas chamadas autenticadas como outro usuario. */
+    public AdminApi(TestRestTemplate rest, String email, String password) {
         this.rest = rest;
+        this.email = email;
+        this.password = password;
     }
 
     public ResponseEntity<Map> get(String path) {
@@ -183,7 +192,7 @@ public class AdminApi {
     private String token() {
         if (token == null) {
             ResponseEntity<Map> login = rest.postForEntity("/api/auth/login",
-                    Map.of("email", "admin@admin.com", "password", "admin123"), Map.class);
+                    Map.of("email", email, "password", password), Map.class);
             token = (String) login.getBody().get("accessToken");
         }
         return token;

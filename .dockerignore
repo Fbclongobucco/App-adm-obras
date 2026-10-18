@@ -13,3 +13,5 @@ README.md
 *.env
 *.log
 tmp
+perf
+openspec

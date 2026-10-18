@@ -26,10 +26,15 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -273,6 +278,35 @@ class AuthControllerIntegrationTest {
                 .isEqualTo(HttpStatus.OK);
         assertThat(postWithCookie("/api/auth/refresh", sibling, FRONTEND_ORIGIN).getStatusCode())
                 .isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    @DisplayName("refresh simultaneo com o mesmo token, dentro da janela, deve renovar todos sem derrubar a sessao")
+    void concurrentRefreshWithinGraceShouldKeepSession() throws Exception {
+        String token = refreshTokenOf(postLogin(ADMIN_EMAIL, ADMIN_PASSWORD));
+        int requests = 4;
+        CountDownLatch start = new CountDownLatch(1);
+        List<Future<ResponseEntity<Map>>> responses = new ArrayList<>();
+        try (ExecutorService executor = Executors.newFixedThreadPool(requests)) {
+            for (int i = 0; i < requests; i++) {
+                responses.add(executor.submit(() -> {
+                    start.await();
+                    return postWithCookie("/api/auth/refresh", token, FRONTEND_ORIGIN);
+                }));
+            }
+            start.countDown();
+        }
+
+        List<String> successors = new ArrayList<>();
+        for (Future<ResponseEntity<Map>> response : responses) {
+            assertThat(response.get().getStatusCode()).isEqualTo(HttpStatus.OK);
+            successors.add(refreshTokenOf(response.get()));
+        }
+        assertThat(successors).doesNotHaveDuplicates().doesNotContain(token);
+        for (String successor : successors) {
+            assertThat(postWithCookie("/api/auth/refresh", successor, FRONTEND_ORIGIN).getStatusCode())
+                    .as("sucessor %s continua valido", successor).isEqualTo(HttpStatus.OK);
+        }
     }
 
     @Test

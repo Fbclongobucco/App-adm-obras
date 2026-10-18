@@ -2,13 +2,16 @@ package com.longobuccodev.app_adm_obras.application.usecase;
 
 import com.longobuccodev.app_adm_obras.application.dto.auth.AuthResult;
 import com.longobuccodev.app_adm_obras.application.dto.auth.AuthTokenResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.auth.LoginOrigin;
 import com.longobuccodev.app_adm_obras.application.dto.auth.LoginRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.auth.LoginResponseDTO;
 import com.longobuccodev.app_adm_obras.application.security.RefreshTokenFactory;
+import com.longobuccodev.app_adm_obras.core.domain.LoginRecord;
 import com.longobuccodev.app_adm_obras.core.domain.RefreshToken;
 import com.longobuccodev.app_adm_obras.core.domain.RefreshToken.RevokeReason;
 import com.longobuccodev.app_adm_obras.core.domain.User;
 import com.longobuccodev.app_adm_obras.core.exception.AuthenticationFailedException;
+import com.longobuccodev.app_adm_obras.core.repository.LoginAuditRepository;
 import com.longobuccodev.app_adm_obras.core.repository.RefreshTokenRepository;
 import com.longobuccodev.app_adm_obras.core.repository.UserRepository;
 import com.longobuccodev.app_adm_obras.core.security.AccessTokenIssuer;
@@ -27,6 +30,7 @@ public class AuthUseCase {
     private final AuthenticationGateway authenticationGateway;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final LoginAuditRepository loginAuditRepository;
     private final AccessTokenIssuer accessTokenIssuer;
     private final RefreshTokenFactory refreshTokenFactory;
     private final Duration refreshTokenTtl;
@@ -34,12 +38,14 @@ public class AuthUseCase {
     private final Clock clock;
 
     public AuthUseCase(AuthenticationGateway authenticationGateway, UserRepository userRepository,
-                       RefreshTokenRepository refreshTokenRepository, AccessTokenIssuer accessTokenIssuer,
+                       RefreshTokenRepository refreshTokenRepository, LoginAuditRepository loginAuditRepository,
+                       AccessTokenIssuer accessTokenIssuer,
                        RefreshTokenFactory refreshTokenFactory, Duration refreshTokenTtl,
                        Duration refreshReuseGrace, Clock clock) {
         this.authenticationGateway = authenticationGateway;
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.loginAuditRepository = loginAuditRepository;
         this.accessTokenIssuer = accessTokenIssuer;
         this.refreshTokenFactory = refreshTokenFactory;
         this.refreshTokenTtl = refreshTokenTtl;
@@ -47,13 +53,19 @@ public class AuthUseCase {
         this.clock = clock;
     }
 
-    public AuthResult login(LoginRequestDTO dto) {
+    /**
+     * Autentica e abre a sessao. O login com sucesso e registrado antes da emissao dos tokens: se o registro
+     * falhar, nenhuma sessao e emitida. Login rejeitado nao e registrado.
+     */
+    public AuthResult login(LoginRequestDTO dto, LoginOrigin origin) {
         if (dto == null || dto.email() == null || dto.email().isBlank()
                 || dto.password() == null || dto.password().isBlank()) {
             throw AuthenticationFailedException.invalidCredentials();
         }
         User user = authenticationGateway.authenticate(dto.email(), dto.password());
         Instant now = clock.instant();
+        LoginOrigin from = origin == null ? LoginOrigin.UNKNOWN : origin;
+        loginAuditRepository.save(LoginRecord.of(user, now, from.ipAddress(), from.userAgent()));
         String raw = refreshTokenFactory.newToken();
         RefreshToken token = refreshTokenRepository.save(
                 RefreshToken.issue(user.getId(), refreshTokenFactory.hash(raw), now, now.plus(refreshTokenTtl)));

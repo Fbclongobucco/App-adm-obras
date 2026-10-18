@@ -31,7 +31,7 @@ public class ProjectEntity extends AuditedEntity {
     @Column(length = 500)
     private String description;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cost_center_id")
     private CostCenterEntity costCenter;
 
@@ -41,7 +41,7 @@ public class ProjectEntity extends AuditedEntity {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
     private ClientEntity client;
 
@@ -53,7 +53,7 @@ public class ProjectEntity extends AuditedEntity {
     @OrderBy("name")
     private Set<RestaurantEntity> restaurants = new LinkedHashSet<>();
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "project_employee",
             joinColumns = @JoinColumn(name = "project_id"),
             inverseJoinColumns = @JoinColumn(name = "employee_id"))

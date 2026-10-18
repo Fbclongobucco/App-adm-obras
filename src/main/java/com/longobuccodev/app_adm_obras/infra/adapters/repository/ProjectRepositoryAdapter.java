@@ -1,5 +1,6 @@
 package com.longobuccodev.app_adm_obras.infra.adapters.repository;
 
+import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
 import com.longobuccodev.app_adm_obras.core.domain.Client;
 import com.longobuccodev.app_adm_obras.core.domain.CostCenter;
 import com.longobuccodev.app_adm_obras.core.domain.Employee;
@@ -9,6 +10,9 @@ import com.longobuccodev.app_adm_obras.core.repository.Page;
 import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 import com.longobuccodev.app_adm_obras.infra.adapters.mapper.ProjectEntityMapper;
+import com.longobuccodev.app_adm_obras.infra.entities.AccommodationEntity;
+import com.longobuccodev.app_adm_obras.infra.entities.EmployeeEntity;
+import com.longobuccodev.app_adm_obras.infra.entities.MealEntity;
 import com.longobuccodev.app_adm_obras.infra.entities.ProjectEntity;
 import com.longobuccodev.app_adm_obras.infra.repositories.AccommodationJpaRepository;
 import com.longobuccodev.app_adm_obras.infra.repositories.ClientJpaRepository;
@@ -25,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class ProjectRepositoryAdapter implements ProjectRepository {
@@ -84,52 +89,52 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
     @Override
     @Transactional(readOnly = true)
     public List<Project> findAll() {
-        return jpaRepository.findAll().stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findAll());
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<Project> findAll(PageRequest request, SearchTerm term) {
         Pageable pageable = SpringPageSupport.toPageable(request, SORT_PROPERTIES);
-        return SpringPageSupport.toDomain(term.isNone()
+        return SpringPageSupport.toDomainAll(term.isNone()
                 ? jpaRepository.findAll(pageable)
-                : jpaRepository.findAll(SearchSpecification.of(term, SEARCH_TEXT, SEARCH_DIGITS), pageable), this::toDomain);
+                : jpaRepository.findAll(SearchSpecification.of(term, SEARCH_TEXT, SEARCH_DIGITS), pageable), this::toDomainAll);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Project> findByClient(Client client) {
-        return jpaRepository.findByClientId(client.getId()).stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findByClientId(client.getId()));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Project> findByCostCenter(CostCenter costCenter) {
-        return jpaRepository.findByCostCenterId(costCenter.getId()).stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findByCostCenterId(costCenter.getId()));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Project> findByEmployee(Employee employee) {
-        return jpaRepository.findByEmployeeId(employee.getId()).stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findByEmployeeId(employee.getId()));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Project> findByStartDate(LocalDate startDate) {
-        return jpaRepository.findByStartDate(startDate).stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findByStartDate(startDate));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Project> findByEndDate(LocalDate endDate) {
-        return jpaRepository.findByEndDate(endDate).stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findByEndDate(endDate));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Project> findByDateBetween(LocalDate startDate, LocalDate endDate) {
-        return jpaRepository.findByStartDateBetween(startDate, endDate).stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findByStartDateBetween(startDate, endDate));
     }
 
     @Override
@@ -155,6 +160,7 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
         applyRelations(project, entity);
     }
 
+    // Uma consulta por lista de vinculos, e nao um findById por item
     private void applyRelations(Project project, ProjectEntity entity) {
         if (project.getCostCenter() != null) {
             entity.setCostCenter(costCenterJpaRepository.findById(project.getCostCenter().getId()).orElse(null));
@@ -166,18 +172,16 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
             entity.setEmployees(new LinkedHashSet<>());
         }
         entity.getEmployees().clear();
-        for (Employee employee : project.getEmployees()) {
-            employeeJpaRepository.findById(employee.getId()).ifPresent(entity.getEmployees()::add);
-        }
+        entity.getEmployees().addAll(BatchLookup.inOrder(project.getEmployees().stream().map(Employee::getId).toList(),
+                employeeJpaRepository::findAllById, EmployeeEntity::getId));
         if (entity.getAccommodations() == null) {
             entity.setAccommodations(new LinkedHashSet<>());
         }
         entity.getAccommodations().clear();
-        for (var accommodation : project.getAccommodations()) {
-            accommodationJpaRepository.findById(accommodation.getId()).ifPresent(accommodationEntity -> {
-                accommodationEntity.setProject(entity);
-                entity.getAccommodations().add(accommodationEntity);
-            });
+        for (var accommodationEntity : BatchLookup.inOrder(project.getAccommodations().stream().map(Accommodation::getId).toList(),
+                accommodationJpaRepository::findAllById, AccommodationEntity::getId)) {
+            accommodationEntity.setProject(entity);
+            entity.getAccommodations().add(accommodationEntity);
         }
     }
 
@@ -185,6 +189,19 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
         if (entity == null) {
             return null;
         }
-        return ProjectEntityMapper.toDomain(entity, mealJpaRepository.findByProjectId(entity.getId()));
+        return toDomainAll(List.of(entity)).getFirst();
+    }
+
+    /** Refeicoes de todas as obras da lista em uma consulta, agrupadas por obra. */
+    private List<Project> toDomainAll(List<ProjectEntity> entities) {
+        if (entities.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, List<MealEntity>> meals = mealJpaRepository
+                .findByProjectIdIn(entities.stream().map(ProjectEntity::getId).toList()).stream()
+                .collect(Collectors.groupingBy(meal -> meal.getProject().getId()));
+        return entities.stream()
+                .map(entity -> ProjectEntityMapper.toDomain(entity, meals.getOrDefault(entity.getId(), List.of())))
+                .toList();
     }
 }

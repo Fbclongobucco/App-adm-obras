@@ -1,0 +1,46 @@
+Pager usage is off.
+Timing is off.
+PREPARE
+=== A. termo seletivo, literal ===
+                                                                                                                                                                 QUERY PLAN                                                                                                                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate (actual time=49.603..49.604 rows=1 loops=1)
+   Buffers: shared hit=227
+   ->  Seq Scan on employee e (actual time=23.643..49.596 rows=1 loops=1)
+         Filter: ((translate(lower((name)::text), 'áàâãäéèêëíìîïóòôõöúùûüçñ'::text, 'aaaaaeeeeiiiiooooouuuucn'::text) ~~ '%colaborador 66705560%'::text) OR (translate(lower((email)::text), 'áàâãäéèêëíìîïóòôõöúùûüçñ'::text, 'aaaaaeeeeiiiiooooouuuucn'::text) ~~ '%colaborador 66705560%'::text) OR ((cpf)::text ~~ '%66705560%'::text))
+         Rows Removed by Filter: 9999
+         Buffers: shared hit=227
+ Planning:
+   Buffers: shared hit=111
+ Planning Time: 0.348 ms
+ Execution Time: 49.643 ms
+(10 rows)
+
+=== B. termo que casa com todos (colaborador), literal ===
+                                                                                                                                                    QUERY PLAN                                                                                                                                                    
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate (actual time=20.817..20.818 rows=1 loops=1)
+   Buffers: shared hit=227
+   ->  Seq Scan on employee e (actual time=0.007..20.338 rows=10000 loops=1)
+         Filter: ((translate(lower((name)::text), 'áàâãäéèêëíìîïóòôõöúùûüçñ'::text, 'aaaaaeeeeiiiiooooouuuucn'::text) ~~ '%colaborador%'::text) OR (translate(lower((email)::text), 'áàâãäéèêëíìîïóòôõöúùûüçñ'::text, 'aaaaaeeeeiiiiooooouuuucn'::text) ~~ '%colaborador%'::text) OR ((cpf)::text ~~ '%%'::text))
+         Buffers: shared hit=227
+ Planning Time: 0.088 ms
+ Execution Time: 20.843 ms
+(7 rows)
+
+=== C. termo seletivo, plano generico (como apos varias execucoes do PreparedStatement) ===
+SET
+                                                                                                     QUERY PLAN                                                                                                     
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate (actual time=45.625..45.626 rows=1 loops=1)
+   Buffers: shared hit=227
+   ->  Seq Scan on employee e (actual time=21.097..45.621 rows=1 loops=1)
+         Filter: ((translate(lower((name)::text), $4, $5) ~~ like_escape($1, '\'::text)) OR (translate(lower((email)::text), $4, $5) ~~ like_escape($2, '\'::text)) OR ((cpf)::text ~~ like_escape($3, '\'::text)))
+         Rows Removed by Filter: 9999
+         Buffers: shared hit=227
+ Planning Time: 0.100 ms
+ Execution Time: 45.688 ms
+(8 rows)
+
+RESET
+DEALLOCATE

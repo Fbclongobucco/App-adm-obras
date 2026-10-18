@@ -12,7 +12,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -28,7 +27,7 @@ public class MealEntity extends AuditedEntity {
     @Id
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "restaurant_id", nullable = false)
     private RestaurantEntity restaurant;
 
@@ -36,7 +35,7 @@ public class MealEntity extends AuditedEntity {
     private Boolean isBilled;
 
     // Copia da obra do restaurante, para a unicidade de cobertura (uk_meal_project_lunch/dinner) valer no banco
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
     private ProjectEntity project;
 
@@ -66,9 +65,8 @@ public class MealEntity extends AuditedEntity {
     @Column(name = "dinner_slot")
     private Boolean dinnerSlot;
 
-    // Ajustes por data: parte da refeicao, gravados e apagados com ela. Lidos em lote nas listagens.
+    // Ajustes por data: parte da refeicao, gravados e apagados com ela. Lidos em lote (hibernate.default_batch_fetch_size).
     @OneToMany(mappedBy = "meal", cascade = CascadeType.ALL, orphanRemoval = true)
-    @BatchSize(size = 100)
     private List<MealAdjustmentEntity> adjustments = new ArrayList<>();
 
     public static MealEntity create() {

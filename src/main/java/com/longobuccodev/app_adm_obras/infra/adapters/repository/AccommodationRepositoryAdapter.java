@@ -1,6 +1,7 @@
 package com.longobuccodev.app_adm_obras.infra.adapters.repository;
 
 import com.longobuccodev.app_adm_obras.core.domain.Accommodation;
+import com.longobuccodev.app_adm_obras.core.domain.Employee;
 import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.repository.AccommodationRepository;
 import com.longobuccodev.app_adm_obras.core.repository.Page;
@@ -8,6 +9,7 @@ import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import com.longobuccodev.app_adm_obras.infra.adapters.mapper.AccommodationEntityMapper;
 import com.longobuccodev.app_adm_obras.infra.adapters.mapper.ProjectEntityMapper;
 import com.longobuccodev.app_adm_obras.infra.entities.AccommodationEntity;
+import com.longobuccodev.app_adm_obras.infra.entities.EmployeeEntity;
 import com.longobuccodev.app_adm_obras.infra.repositories.AccommodationJpaRepository;
 import com.longobuccodev.app_adm_obras.infra.repositories.EmployeeJpaRepository;
 import com.longobuccodev.app_adm_obras.infra.repositories.ProjectJpaRepository;
@@ -15,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
@@ -54,6 +57,12 @@ public class AccommodationRepositoryAdapter implements AccommodationRepository {
     @Transactional(readOnly = true)
     public Accommodation findById(UUID id) {
         return toDomain(jpaRepository.findById(id).orElse(null));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Accommodation> findAllById(Collection<UUID> ids) {
+        return jpaRepository.findAllById(ids).stream().map(this::toDomain).toList();
     }
 
     @Override
@@ -115,10 +124,10 @@ public class AccommodationRepositoryAdapter implements AccommodationRepository {
     }
 
     private void replaceEmployees(AccommodationEntity entity, Accommodation accommodation) {
-        entity.setEmployees(new LinkedHashSet<>());
-        for (var employee : accommodation.getEmployees()) {
-            employeeJpaRepository.findById(employee.getId()).ifPresent(entity.getEmployees()::add);
-        }
+        // Uma consulta para a lista, e nao um findById por colaborador
+        entity.setEmployees(new LinkedHashSet<>(BatchLookup.inOrder(
+                accommodation.getEmployees().stream().map(Employee::getId).toList(),
+                employeeJpaRepository::findAllById, EmployeeEntity::getId)));
     }
 
     private Accommodation toDomain(AccommodationEntity entity) {

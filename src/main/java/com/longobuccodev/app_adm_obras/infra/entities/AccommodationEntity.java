@@ -32,7 +32,7 @@ public class AccommodationEntity extends AuditedEntity {
     @Column(name = "host_phone", nullable = false, length = 11)
     private String hostPhone;
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "address_id", nullable = false)
     private AddressEntity address;
 
@@ -42,11 +42,11 @@ public class AccommodationEntity extends AuditedEntity {
     @Column(name = "is_contract", nullable = false)
     private Boolean isContract;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
     private ProjectEntity project;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "accommodation_employee",
             joinColumns = @JoinColumn(name = "accommodation_id"),
             inverseJoinColumns = @JoinColumn(name = "employee_id"))
@@ -58,8 +58,8 @@ public class AccommodationEntity extends AuditedEntity {
     @Column(name = "monthly_price", nullable = false, precision = 19, scale = 2)
     private BigDecimal monthlyPrice;
 
-    // Set (nao List): junto com employees EAGER, duas colecoes List seriam "bags" proibidas pelo Hibernate
-    @OneToMany(mappedBy = "accommodation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    // Set (nao List): duas colecoes List na mesma entidade seriam "bags", que o Hibernate nao busca juntas
+    @OneToMany(mappedBy = "accommodation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("startDate")
     private Set<AccommodationPeriodEntity> periods = new LinkedHashSet<>();
 

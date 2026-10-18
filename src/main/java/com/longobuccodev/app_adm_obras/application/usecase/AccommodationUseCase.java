@@ -120,6 +120,7 @@ public class AccommodationUseCase {
     }
 
     private Set<Employee> findEmployees(Set<UUID> employeeIds) {
-        return EntityLookup.all(employeeIds, employeeRepository::findById, ResourceNotFoundException::employee);
+        return EntityLookup.all(employeeIds, employeeRepository::findAllById, Employee::getId,
+                ResourceNotFoundException::employee);
     }
 }

@@ -65,7 +65,7 @@ class RefreshOriginFilterTest {
     @Test
     @DisplayName("login nao exige Origin")
     void loginIsNotFiltered() throws Exception {
-        when(authUseCase.login(any())).thenThrow(AuthenticationFailedException.invalidCredentials());
+        when(authUseCase.login(any(), any())).thenThrow(AuthenticationFailedException.invalidCredentials());
 
         mockMvc.perform(post("/api/auth/login")).andExpect(status().isUnauthorized());
     }

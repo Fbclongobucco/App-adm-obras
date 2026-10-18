@@ -1,13 +1,16 @@
 package com.longobuccodev.app_adm_obras.application.usecase;
 
 import com.longobuccodev.app_adm_obras.application.dto.auth.AuthResult;
+import com.longobuccodev.app_adm_obras.application.dto.auth.LoginOrigin;
 import com.longobuccodev.app_adm_obras.application.dto.auth.LoginRequestDTO;
 import com.longobuccodev.app_adm_obras.application.security.RefreshTokenFactory;
+import com.longobuccodev.app_adm_obras.core.domain.LoginRecord;
 import com.longobuccodev.app_adm_obras.core.domain.RefreshToken;
 import com.longobuccodev.app_adm_obras.core.domain.RefreshToken.RevokeReason;
 import com.longobuccodev.app_adm_obras.core.domain.User;
 import com.longobuccodev.app_adm_obras.core.domain.User.Role;
 import com.longobuccodev.app_adm_obras.core.exception.AuthenticationFailedException;
+import com.longobuccodev.app_adm_obras.core.repository.LoginAuditRepository;
 import com.longobuccodev.app_adm_obras.core.repository.RefreshTokenRepository;
 import com.longobuccodev.app_adm_obras.core.repository.UserRepository;
 import com.longobuccodev.app_adm_obras.core.security.AccessTokenIssuer;
@@ -15,6 +18,7 @@ import com.longobuccodev.app_adm_obras.core.security.AuthenticationGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -30,7 +34,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AuthUseCaseTest {
@@ -42,6 +50,7 @@ class AuthUseCaseTest {
     private MutableClock clock;
     private InMemoryRefreshTokenRepository tokens;
     private UserRepository users;
+    private LoginAuditRepository logins;
     private User user;
     private AuthenticationGateway gateway;
     private AccessTokenIssuer issuer;
@@ -52,6 +61,7 @@ class AuthUseCaseTest {
         clock = new MutableClock(LOGIN_TIME);
         tokens = new InMemoryRefreshTokenRepository();
         users = mock(UserRepository.class);
+        logins = mock(LoginAuditRepository.class);
         user = new User(null, "Ana Souza", "ana@email.com", true, "$2a$10$abcdefghijklmnopqrstuv");
         user.addRole(Role.ADMIN);
         when(users.findById(user.getId())).thenAnswer(invocation -> user);
@@ -71,12 +81,15 @@ class AuthUseCaseTest {
         useCase = useCaseWithGrace(REUSE_GRACE);
     }
 
+    private static final LoginOrigin ORIGIN = new LoginOrigin("203.0.113.7", "Mozilla/5.0 (teste)");
+
     private AuthUseCase useCaseWithGrace(Duration grace) {
-        return new AuthUseCase(gateway, users, tokens, issuer, new RefreshTokenFactory(), REFRESH_TTL, grace, clock);
+        return new AuthUseCase(gateway, users, tokens, logins, issuer, new RefreshTokenFactory(), REFRESH_TTL, grace,
+                clock);
     }
 
     private AuthResult login() {
-        return useCase.login(new LoginRequestDTO("ana@email.com", "senha123"));
+        return useCase.login(new LoginRequestDTO("ana@email.com", "senha123"), ORIGIN);
     }
 
     @Test
@@ -95,12 +108,49 @@ class AuthUseCaseTest {
     @Test
     @DisplayName("login com credenciais invalidas ou ausentes deve falhar sem criar token")
     void loginWithInvalidCredentials() {
-        assertThatThrownBy(() -> useCase.login(new LoginRequestDTO("ana@email.com", "errada")))
+        assertThatThrownBy(() -> useCase.login(new LoginRequestDTO("ana@email.com", "errada"), ORIGIN))
                 .isInstanceOf(AuthenticationFailedException.class);
-        assertThatThrownBy(() -> useCase.login(null)).isInstanceOf(AuthenticationFailedException.class);
-        assertThatThrownBy(() -> useCase.login(new LoginRequestDTO("ana@email.com", " ")))
+        assertThatThrownBy(() -> useCase.login(null, ORIGIN)).isInstanceOf(AuthenticationFailedException.class);
+        assertThatThrownBy(() -> useCase.login(new LoginRequestDTO("ana@email.com", " "), ORIGIN))
                 .isInstanceOf(AuthenticationFailedException.class);
         assertThat(tokens.all()).isEmpty();
+        verify(logins, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("login com sucesso deve registrar usuario, instante, IP e user-agent")
+    void loginShouldBeRecorded() {
+        login();
+
+        ArgumentCaptor<LoginRecord> record = ArgumentCaptor.forClass(LoginRecord.class);
+        verify(logins).save(record.capture());
+        assertThat(record.getValue().getUserId()).isEqualTo(user.getId());
+        assertThat(record.getValue().getUserName()).isEqualTo("Ana Souza");
+        assertThat(record.getValue().getUserEmail()).isEqualTo("ana@email.com");
+        assertThat(record.getValue().getOccurredAt()).isEqualTo(LOGIN_TIME);
+        assertThat(record.getValue().getIpAddress()).isEqualTo("203.0.113.7");
+        assertThat(record.getValue().getUserAgent()).isEqualTo("Mozilla/5.0 (teste)");
+    }
+
+    @Test
+    @DisplayName("falha ao registrar o login deve impedir a sessao: sem refresh token e sem resposta")
+    void recordFailureShouldNotOpenSession() {
+        doThrow(new IllegalStateException("banco fora")).when(logins).save(any());
+
+        assertThatThrownBy(this::login).isInstanceOf(IllegalStateException.class);
+        assertThat(tokens.all()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("refresh e logout nao devem registrar login")
+    void refreshAndLogoutShouldNotBeRecorded() {
+        AuthResult first = login();
+        clearInvocations(logins);
+
+        AuthResult second = useCase.refresh(first.refreshToken());
+        useCase.logout(second.refreshToken());
+
+        verify(logins, never()).save(any());
     }
 
     @Test

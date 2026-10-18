@@ -16,8 +16,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class EmployeeRepositoryAdapter implements EmployeeRepository {
@@ -52,6 +55,12 @@ public class EmployeeRepositoryAdapter implements EmployeeRepository {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Employee> findAllById(Collection<UUID> ids) {
+        return toDomainAll(jpaRepository.findAllById(ids));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Employee findByName(String name) {
         return toDomain(jpaRepository.findFirstByName(name).orElse(null));
     }
@@ -71,34 +80,34 @@ public class EmployeeRepositoryAdapter implements EmployeeRepository {
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findByCostCenter(com.longobuccodev.app_adm_obras.core.domain.CostCenter costCenter) {
-        return jpaRepository.findByCostCenterId(costCenter.getId()).stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findByCostCenterId(costCenter.getId()));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findByClient(com.longobuccodev.app_adm_obras.core.domain.Client client) {
-        return jpaRepository.findByClientId(client.getId()).stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findByClientId(client.getId()));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findByProject(com.longobuccodev.app_adm_obras.core.domain.Project project) {
-        return jpaRepository.findByProjectId(project.getId()).stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findByProjectId(project.getId()));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> findAll() {
-        return jpaRepository.findAll().stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findAll());
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<Employee> findAll(PageRequest request, SearchTerm term) {
         Pageable pageable = SpringPageSupport.toPageable(request);
-        return SpringPageSupport.toDomain(term.isNone()
+        return SpringPageSupport.toDomainAll(term.isNone()
                 ? jpaRepository.findAll(pageable)
-                : jpaRepository.findAll(SearchSpecification.of(term, SEARCH_TEXT, SEARCH_DIGITS), pageable), this::toDomain);
+                : jpaRepository.findAll(SearchSpecification.of(term, SEARCH_TEXT, SEARCH_DIGITS), pageable), this::toDomainAll);
     }
 
     @Override
@@ -130,7 +139,20 @@ public class EmployeeRepositoryAdapter implements EmployeeRepository {
         if (entity == null) {
             return null;
         }
-        List<ProjectEntity> projects = projectJpaRepository.findByEmployeeId(entity.getId());
-        return EmployeeEntityMapper.toDomain(entity, projects);
+        return toDomainAll(List.of(entity)).getFirst();
+    }
+
+    /** Obras de todos os colaboradores da lista em uma consulta, agrupadas por colaborador. */
+    private List<Employee> toDomainAll(List<EmployeeEntity> entities) {
+        if (entities.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, List<ProjectEntity>> projects = projectJpaRepository
+                .findWithEmployeeIdIn(entities.stream().map(EmployeeEntity::getId).toList()).stream()
+                .collect(Collectors.groupingBy(row -> (UUID) row[0],
+                        Collectors.mapping(row -> (ProjectEntity) row[1], Collectors.toList())));
+        return entities.stream()
+                .map(entity -> EmployeeEntityMapper.toDomain(entity, projects.getOrDefault(entity.getId(), List.of())))
+                .toList();
     }
 }

@@ -27,7 +27,7 @@ public class ClientEntity extends AuditedEntity {
     @Column
     private String phone;
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "address_id", nullable = false)
     private AddressEntity address;
 

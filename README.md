@@ -5,7 +5,9 @@ Application for construction site administration.
 ## Quick start
 
 1. Copy `.env.example` to `.env` and fill in required values (especially database credentials and Docker Hub credentials if building/pushing images).
-2. Ensure an external PostgreSQL instance is reachable (the project does not provision Postgres via docker-compose).
+2. Database:
+   - `local` profile: requires Docker. The application starts PostgreSQL itself from `compose.local.yaml` (see [Local database](#local-database)).
+   - `prod` profile: an external PostgreSQL instance must be reachable (`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`).
 3. Start the application:
    - With Maven: `./mvnw spring-boot:run -Dspring-boot.run.profiles=local`
    - With Docker Compose (application only): `docker compose up --build`. The host port comes from `APP_PORT` in `.env` (default `8080`), e.g. `APP_PORT=8081` publishes the API on `http://localhost:8081`.
@@ -24,6 +26,9 @@ Key variables:
 - `APP_REFRESH_COOKIE_SECURE`: Refresh token cookie `Secure` flag (default `true`; always `true` in prod)
 - `APP_REFRESH_COOKIE_PARTITIONED`: Adds the `Partitioned` attribute to the refresh token cookie (default `false`)
 - `APP_BOOTSTRAP_*`: Admin user bootstrap configuration
+- `APP_VIRTUAL_THREADS`: Virtual threads for HTTP requests and scheduled tasks (default `true`; `false` falls back to platform threads)
+- `DB_POOL_MAX_SIZE`: Maximum database connections (default `10`, the HikariCP default). With virtual threads the pool is the effective concurrency limit on the database.
+- `SERVER_FORWARD_HEADERS_STRATEGY`: Set to `native` **only behind a trusted reverse proxy**, so the login audit records the client IP from `X-Forwarded-For` instead of the proxy IP. Without a proxy, leave it unset: honoring that header from clients lets them forge the recorded IP.
 - `DOCKERHUB_*`: Used by `scripts/docker-build-push.sh` for publishing images
 
 ## Authentication
@@ -135,13 +140,50 @@ The diagram reflects the current schema as derived from JPA entities. If schema 
 
 The database schema is owned by Flyway. Migrations live in `src/main/resources/db/migration` and run on startup, before the application serves requests. Hibernate never creates or alters tables (`spring.jpa.hibernate.ddl-auto=none` in every profile).
 
-- The same migrations run on PostgreSQL (prod) and on H2 in `MODE=PostgreSQL` (local/test).
+- The same migrations run on PostgreSQL (`local` and `prod`) and on H2 in `MODE=PostgreSQL` (`test`).
 - Every schema change is a new `V<n>__<description>.sql` file. Never edit a migration that has already been applied.
 - Enum columns are `varchar` without a `CHECK` on the allowed values (see the comment in `V1__baseline_schema.sql`); the values are enforced by the Java enums.
 
-An external database previously used with `ddl-auto` already has tables that `V1` tries to create:
-- `prod`: the first boot with Flyway fails on an untracked schema. Recreate the database (or drop its schema) before deploying this version.
-- `local`: `spring.flyway.baseline-on-migrate=true` marks an existing schema as the baseline instead of failing.
+An external database previously used with `ddl-auto` already has tables that `V1` tries to create: the first boot with Flyway fails on an untracked schema. Recreate the database (or drop its schema) before deploying this version. The `local` database starts empty and is migrated from `V1`.
+
+### Local database
+
+The `local` profile runs on PostgreSQL in a container, defined in `compose.local.yaml` (Compose project `app-adm-obras-local`). Spring Boot's Docker Compose support starts it on `./mvnw spring-boot:run` and reads the URL and credentials from the container; nothing is hardcoded in `application-local.properties`.
+
+- **Docker is required** to run the application locally. `./mvnw test` does not need it: the `test` profile uses H2 in memory.
+- The container stays up after the application stops (`lifecycle-management=start-only`), and the data lives in the `postgres-local` volume, so records survive restarts. The bootstrap admin is created only if it does not exist yet.
+- Reset the local database: `docker compose -f compose.local.yaml down -v`.
+- Open a SQL shell: `docker compose -f compose.local.yaml exec postgres psql -U app -d app_adm_obras`.
+- The H2 console is no longer available in the `local` profile.
+- The image version is pinned (`postgres:16.10`), matching the PostgreSQL line used in the deploy checklist.
+
+## Load testing
+
+Tools in `perf/` measure the API under load. They need only Docker (and the JDK, for the `local` target); k6 runs from the `grafana/k6` image. Results feed `perf/RESULTADOS.md`, which holds measured values only.
+
+### Seed data
+
+`perf/seed.js` creates the data through the API (same validations as real use), in dependency order: cost centers, clients, employees, projects, restaurants, meals, accommodations, users. Volumes come from named scenarios in `perf/scenarios.json` (`pequeno`, `medio`, `grande`). The numbers are **nominal**, not production volumes; edit the file to simulate other cases. An unknown scenario fails before any request; the first rejected record stops the run and prints the endpoint and the response.
+
+### Running
+
+```bash
+# Isolated: PostgreSQL + app (prod profile, 2 CPUs / 1 GiB each) + k6 in perf/compose.yaml; torn down at the end
+perf/run.sh --target perf --scenario medio --threads on
+
+# Against the app already running in the local profile (./mvnw spring-boot:run)
+perf/run.sh --target local --scenario pequeno --threads off
+```
+
+- `--threads on|off`: virtual threads. On `perf`, the script sets `APP_VIRTUAL_THREADS` for the app container. On `local`, it only records the mode: start the app with `APP_VIRTUAL_THREADS=true|false` to match.
+- `--vus N` (default 10), `--duration D` (default `2m`), `--think S` (pause between iterations, default 0).
+- Environment: `DB_POOL_MAX_SIZE` and `JAVA_OPTS` (app container), `KEEP=true` (keep the `perf` containers up afterwards, e.g. to run `EXPLAIN`), `BASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` (`local` target).
+- On `local`, the data is seeded only when the database has no projects, so it is reused across runs.
+- On `local`, k6 uses the host network (`--network host`, Linux).
+- On `perf`, the top PostgreSQL statements of the load phase (`pg_stat_statements`) are saved next to the summary as `*-pg-top.txt`.
+- Virtual thread pinning: run with `KEEP=true JAVA_OPTS="-Xms256m -Xmx512m -XX:StartFlightRecording=filename=/tmp/vt.jfr,dumponexit=true"`, then `docker exec app-adm-obras-perf-app-1 sh -c 'kill -TERM $(pgrep -f "java ")'`, `docker cp app-adm-obras-perf-app-1:/tmp/vt.jfr .` and `jfr print --events jdk.VirtualThreadPinned vt.jfr`. Send the signal to the Java process: the image starts it under `sh -c`, so `docker stop` does not reach it.
+
+Each run writes `perf/results/<date>-<target>-<scenario>-<mode>.json`, with the run conditions (`meta`: target, scenario, threads, VUs, duration, pool size, commit, machine) and p50/p95/p99 latency, throughput and error rate per endpoint group (`listagem`, `detalhe`, `busca`, `escrita`). Compare only runs with the same target, scenario and machine; the `perf` target is the reference for the thread-mode comparison.
 
 ## API documentation
 
@@ -280,6 +322,15 @@ Migration `V3` converts existing meals: one restaurant per (project, restaurant 
 ### Audit timestamps and sorting
 
 Business resources return `createdAt` and `updatedAt` (UTC, set by the server; values sent by clients are ignored). `GET /api/projects` accepts `sort=<field>[,asc|desc]` with `updatedAt`, `createdAt`, `os` or `startDate`, e.g. `sort=updatedAt,desc&size=10`. Other values respond `400 page.invalid.sort`.
+
+### Audit log (migration `V9`)
+
+Read-only, **ADMIN only** (`OPERADOR` receives 403). No endpoint creates, changes or deletes audit records.
+
+- `GET /api/audit/changes`: who created, updated or deleted each business record, and when. One event per database write of projects, employees, cost centers, clients, accommodations, accommodation periods, meals, meal adjustments, restaurants and users, recorded in the same transaction as the write (a rejected or rolled-back write leaves no event). Field values are **not** stored. Filters: `entityType` (`PROJECT`, `EMPLOYEE`, `COST_CENTER`, `CLIENT`, `ACCOMMODATION`, `ACCOMMODATION_PERIOD`, `MEAL`, `MEAL_ADJUSTMENT`, `RESTAURANT`, `USER`), `entityId`, `actorId`, `from`, `to`. The author is stored with the name and email at the time of the event; writes without an authenticated user (bootstrap) have `actorName` `SYSTEM` and no `actorId`.
+- `GET /api/audit/logins`: successful logins with user, time, IP and user-agent. Failed logins, refresh and logout are not recorded. Filters: `userId`, `from`, `to`. The IP is the client address as seen by the server; behind a proxy see `SERVER_FORWARD_HEADERS_STRATEGY`.
+- Both are paginated (`page`, `size`), newest first. `from` is inclusive and `to` exclusive, as ISO-8601 instants (`2026-10-01T00:00:00Z`). An unknown `entityType` responds `400 audit.invalid.entityType`; `from` after `to` responds `400 audit.invalid.period`; a malformed instant or id responds `400 request.parameter.invalid`.
+- IP and user-agent are personal data. There is no automatic purge yet; retention is still to be defined.
 
 ### Weekly meal closing
 

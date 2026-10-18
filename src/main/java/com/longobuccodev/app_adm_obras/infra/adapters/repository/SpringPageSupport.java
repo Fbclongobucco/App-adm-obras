@@ -5,6 +5,7 @@ import com.longobuccodev.app_adm_obras.core.repository.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -39,6 +40,13 @@ final class SpringPageSupport {
 
     static <E, D> Page<D> toDomain(org.springframework.data.domain.Page<E> source, Function<E, D> mapper) {
         return new Page<>(source.getContent().stream().map(mapper).toList(),
+                source.getNumber(), source.getSize(), source.getTotalElements(), source.getTotalPages());
+    }
+
+    /** Mapeia a pagina inteira de uma vez, para o adaptador carregar o que falta em lote. */
+    static <E, D> Page<D> toDomainAll(org.springframework.data.domain.Page<E> source,
+                                      Function<List<E>, List<D>> mapper) {
+        return new Page<>(mapper.apply(source.getContent()),
                 source.getNumber(), source.getSize(), source.getTotalElements(), source.getTotalPages());
     }
 }

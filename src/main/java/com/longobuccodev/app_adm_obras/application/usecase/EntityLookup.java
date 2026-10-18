@@ -2,7 +2,11 @@ package com.longobuccodev.app_adm_obras.application.usecase;
 
 import com.longobuccodev.app_adm_obras.application.exception.ResourceNotFoundException;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -24,14 +28,24 @@ final class EntityLookup {
         return id == null ? null : require(id, finder, notFound);
     }
 
-    static <T> Set<T> all(Set<UUID> ids, Function<UUID, T> finder,
+    /**
+     * Busca todos os ids em uma leitura e devolve na ordem pedida. O primeiro id inexistente, na ordem
+     * pedida, responde como no {@link #require}.
+     */
+    static <T> Set<T> all(Set<UUID> ids, Function<Collection<UUID>, List<T>> finder, Function<T, UUID> idOf,
                           Function<UUID, ResourceNotFoundException> notFound) {
         Set<T> entities = new LinkedHashSet<>();
-        if (ids == null) {
+        if (ids == null || ids.isEmpty()) {
             return entities;
         }
+        Map<UUID, T> found = new HashMap<>();
+        finder.apply(ids).forEach(entity -> found.put(idOf.apply(entity), entity));
         for (UUID id : ids) {
-            entities.add(require(id, finder, notFound));
+            T entity = found.get(id);
+            if (entity == null) {
+                throw notFound.apply(id);
+            }
+            entities.add(entity);
         }
         return entities;
     }

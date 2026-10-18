@@ -26,11 +26,11 @@ public class RestaurantEntity extends AuditedEntity {
     private String phone;
 
     // Endereco do proprio restaurante: gravado e apagado junto com ele
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "address_id")
     private AddressEntity address;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "project_id", nullable = false)
     private ProjectEntity project;
 

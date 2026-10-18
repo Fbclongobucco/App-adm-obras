@@ -12,13 +12,15 @@ Pré-requisito: `deploy-viavel` aplicado.
 - [ ] 1.6 Garantir que uma mutação rejeitada não deixe o total alterado, por rollback da transação; verificar por teste que uma atualização inválida de refeição mantém refeição e total intactos
 - [ ] 1.7 Cobrir o contrato de origem dos totais: total de refeição sempre derivado de preço por quantidade, total de acomodação sempre informado e nunca recalculado, e total negativo de componente rejeitado sem persistir nada
 
-## 2. Leitura em lote de projetos
+## 2. Leitura em lote de projetos — SUBSTITUÍDO
 
-- [ ] 2.1 Adicionar `findByProjectIdIn` em `MealJpaRepository` e implementar no `ProjectRepositoryAdapter` um helper que coleta os ids da página, executa uma única consulta e agrupa por `(projectId, mealType)` para entregar almoço e janta ao `ProjectEntityMapper.toDomain(entity, lunch, dinner)`, cuja assinatura já aceita esses argumentos
-- [ ] 2.2 Aplicar o helper em `findAll(PageRequest)` e em `findAll()` não paginado, removendo as duas consultas por projeto do método `toDomain`; verificar por teste que a listagem continua devolvendo almoço e janta corretos
-- [ ] 2.3 Trocar `EAGER` por `LAZY` com `@BatchSize` em `ProjectEntity.employees` e `AccommodationEntity.employees`; verificar por teste de integração que a resposta da listagem é serializada sem `LazyInitializationException`
-- [ ] 2.4 Escrever teste que compara o número de consultas ao banco entre uma página pequena e uma página grande, e verificar que os dois valores são iguais, atendendo o requisito de custo constante
-- [ ] 2.5 Verificar que a listagem e a leitura de detalhe do mesmo projeto devolvem conteúdo equivalente, e que as validações de paginação (índice negativo e tamanho acima do limite) continuam rejeitando antes de qualquer consulta
+Substituído por `desempenho-virtual-threads-e-auditoria` (grupo 4 e spec `persistence-query-efficiency`), em 2026-10-18. As tarefas abaixo estavam desatualizadas (citavam `toDomain(entity, lunch, dinner)`, que não existe desde o `V4`) e não devem ser implementadas aqui. Ficam como registro, marcadas como concluídas pelo outro change.
+
+- [x] 2.1 (substituído) Adicionar `findByProjectIdIn` em `MealJpaRepository` e implementar no `ProjectRepositoryAdapter` um helper que coleta os ids da página, executa uma única consulta e agrupa por `(projectId, mealType)` para entregar almoço e janta ao `ProjectEntityMapper.toDomain(entity, lunch, dinner)`, cuja assinatura já aceita esses argumentos
+- [x] 2.2 (substituído) Aplicar o helper em `findAll(PageRequest)` e em `findAll()` não paginado, removendo as duas consultas por projeto do método `toDomain`; verificar por teste que a listagem continua devolvendo almoço e janta corretos
+- [x] 2.3 (substituído) Trocar `EAGER` por `LAZY` com `@BatchSize` em `ProjectEntity.employees` e `AccommodationEntity.employees`; verificar por teste de integração que a resposta da listagem é serializada sem `LazyInitializationException`
+- [x] 2.4 (substituído) Escrever teste que compara o número de consultas ao banco entre uma página pequena e uma página grande, e verificar que os dois valores são iguais, atendendo o requisito de custo constante
+- [x] 2.5 (substituído) Verificar que a listagem e a leitura de detalhe do mesmo projeto devolvem conteúdo equivalente, e que as validações de paginação (índice negativo e tamanho acima do limite) continuam rejeitando antes de qualquer consulta
 
 ## 3. Verificação de conjunto
 

@@ -1,0 +1,67 @@
+create extension if not exists pg_trgm;
+create index idx_employee_name_trgm on employee using gin
+    (translate(lower(name), 'áàâãäéèêëíìîïóòôõöúùûüçñ', 'aaaaaeeeeiiiiooooouuuucn') gin_trgm_ops);
+create index idx_employee_email_trgm on employee using gin
+    (translate(lower(email), 'áàâãäéèêëíìîïóòôõöúùûüçñ', 'aaaaaeeeeiiiiooooouuuucn') gin_trgm_ops);
+create index idx_employee_cpf_trgm on employee using gin (cpf gin_trgm_ops);
+analyze employee;
+
+Pager usage is off.
+Timing is off.
+PREPARE
+=== A. termo seletivo, literal ===
+                                                                                                                                                                    QUERY PLAN                                                                                                                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate (actual time=1.501..1.502 rows=1 loops=1)
+   Buffers: shared hit=174
+   ->  Bitmap Heap Scan on employee e (actual time=1.498..1.499 rows=1 loops=1)
+         Recheck Cond: ((translate(lower((name)::text), 'áàâãäéèêëíìîïóòôõöúùûüçñ'::text, 'aaaaaeeeeiiiiooooouuuucn'::text) ~~ '%colaborador 66705560%'::text) OR (translate(lower((email)::text), 'áàâãäéèêëíìîïóòôõöúùûüçñ'::text, 'aaaaaeeeeiiiiooooouuuucn'::text) ~~ '%colaborador 66705560%'::text) OR ((cpf)::text ~~ '%66705560%'::text))
+         Heap Blocks: exact=1
+         Buffers: shared hit=174
+         ->  BitmapOr (actual time=1.484..1.484 rows=0 loops=1)
+               Buffers: shared hit=173
+               ->  Bitmap Index Scan on idx_employee_name_trgm (actual time=0.944..0.944 rows=1 loops=1)
+                     Index Cond: (translate(lower((name)::text), 'áàâãäéèêëíìîïóòôõöúùûüçñ'::text, 'aaaaaeeeeiiiiooooouuuucn'::text) ~~ '%colaborador 66705560%'::text)
+                     Buffers: shared hit=93
+               ->  Bitmap Index Scan on idx_employee_email_trgm (actual time=0.390..0.390 rows=0 loops=1)
+                     Index Cond: (translate(lower((email)::text), 'áàâãäéèêëíìîïóòôõöúùûüçñ'::text, 'aaaaaeeeeiiiiooooouuuucn'::text) ~~ '%colaborador 66705560%'::text)
+                     Buffers: shared hit=59
+               ->  Bitmap Index Scan on idx_employee_cpf_trgm (actual time=0.150..0.150 rows=1 loops=1)
+                     Index Cond: ((cpf)::text ~~ '%66705560%'::text)
+                     Buffers: shared hit=21
+ Planning:
+   Buffers: shared hit=182
+ Planning Time: 0.868 ms
+ Execution Time: 1.589 ms
+(21 rows)
+
+=== B. termo que casa com todos (colaborador), literal ===
+                                                                                                                                                    QUERY PLAN                                                                                                                                                    
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate (actual time=19.295..19.296 rows=1 loops=1)
+   Buffers: shared hit=227
+   ->  Seq Scan on employee e (actual time=0.009..18.881 rows=10000 loops=1)
+         Filter: ((translate(lower((name)::text), 'áàâãäéèêëíìîïóòôõöúùûüçñ'::text, 'aaaaaeeeeiiiiooooouuuucn'::text) ~~ '%colaborador%'::text) OR (translate(lower((email)::text), 'áàâãäéèêëíìîïóòôõöúùûüçñ'::text, 'aaaaaeeeeiiiiooooouuuucn'::text) ~~ '%colaborador%'::text) OR ((cpf)::text ~~ '%%'::text))
+         Buffers: shared hit=227
+ Planning:
+   Buffers: shared hit=3
+ Planning Time: 0.108 ms
+ Execution Time: 19.312 ms
+(9 rows)
+
+=== C. termo seletivo, plano generico (como apos varias execucoes do PreparedStatement) ===
+SET
+                                                                                                     QUERY PLAN                                                                                                     
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate (actual time=50.206..50.207 rows=1 loops=1)
+   Buffers: shared hit=227
+   ->  Seq Scan on employee e (actual time=23.855..50.189 rows=1 loops=1)
+         Filter: ((translate(lower((name)::text), $4, $5) ~~ like_escape($1, '\'::text)) OR (translate(lower((email)::text), $4, $5) ~~ like_escape($2, '\'::text)) OR ((cpf)::text ~~ like_escape($3, '\'::text)))
+         Rows Removed by Filter: 9999
+         Buffers: shared hit=227
+ Planning Time: 0.118 ms
+ Execution Time: 50.232 ms
+(8 rows)
+
+RESET
+DEALLOCATE

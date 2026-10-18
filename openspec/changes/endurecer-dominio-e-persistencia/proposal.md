@@ -16,6 +16,8 @@ A gestão de schema (Flyway) e a unicidade de refeição no banco, antes parte d
 
 ### Custo de consulta
 
+> **Substituído** por `desempenho-virtual-threads-e-auditoria` (2026-10-18), que assume a leitura em lote e a spec de custo de consulta. Este change mantém só a consistência do total do projeto.
+
 - A listagem de projetos passa a carregar refeições e funcionários em lote por página, sem as duas queries por linha. O número de consultas de `GET /api/projects` deixa de crescer com o tamanho da página.
 - As coleções `EAGER` de projeto passam a `LAZY` com `@BatchSize`, dentro da transação do adaptador.
 
@@ -39,7 +41,7 @@ A gestão de schema (Flyway) e a unicidade de refeição no banco, antes parte d
 ### New Capabilities
 
 - `project-cost-totalization`: o total de custo de um projeto reflete, de forma consistente e observável, todas as suas refeições e acomodações em todos os caminhos de mutação, e é persistido como fonte da verdade.
-- `project-read-performance`: a leitura de projetos, em especial a listagem paginada, executa um número de consultas que não cresce com o tamanho da página.
+- ~~`project-read-performance`~~: substituída pela spec `persistence-query-efficiency` do change `desempenho-virtual-threads-e-auditoria`.
 
 ### Modified Capabilities
 

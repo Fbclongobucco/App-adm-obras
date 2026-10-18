@@ -6,6 +6,7 @@ import com.longobuccodev.app_adm_obras.core.domain.Employee;
 import com.longobuccodev.app_adm_obras.core.domain.SearchTerm;
 import com.longobuccodev.app_adm_obras.core.domain.Project;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,6 +14,10 @@ public interface EmployeeRepository {
 
     Employee save(Employee employee);
     Employee findById(UUID id);
+
+    /** Os encontrados entre os ids, em uma leitura; ids inexistentes ficam de fora. */
+    List<Employee> findAllById(Collection<UUID> ids);
+
     Employee findByName(String name);
     Employee findByCpf(String cpf);
     Employee findByEmail(String email);

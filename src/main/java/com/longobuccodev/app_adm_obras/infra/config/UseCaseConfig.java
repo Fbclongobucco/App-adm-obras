@@ -2,6 +2,7 @@ package com.longobuccodev.app_adm_obras.infra.config;
 
 import com.longobuccodev.app_adm_obras.application.security.RefreshTokenFactory;
 import com.longobuccodev.app_adm_obras.application.usecase.AccommodationUseCase;
+import com.longobuccodev.app_adm_obras.application.usecase.AuditQueryUseCase;
 import com.longobuccodev.app_adm_obras.application.usecase.AuthUseCase;
 import com.longobuccodev.app_adm_obras.application.usecase.AddressUseCase;
 import com.longobuccodev.app_adm_obras.application.usecase.ClientUseCase;
@@ -13,9 +14,11 @@ import com.longobuccodev.app_adm_obras.application.usecase.RestaurantUseCase;
 import com.longobuccodev.app_adm_obras.application.usecase.UserUseCase;
 import com.longobuccodev.app_adm_obras.core.repository.AccommodationRepository;
 import com.longobuccodev.app_adm_obras.core.repository.AddressRepository;
+import com.longobuccodev.app_adm_obras.core.repository.ChangeAuditRepository;
 import com.longobuccodev.app_adm_obras.core.repository.ClientRepository;
 import com.longobuccodev.app_adm_obras.core.repository.CostCenterRepository;
 import com.longobuccodev.app_adm_obras.core.repository.EmployeeRepository;
+import com.longobuccodev.app_adm_obras.core.repository.LoginAuditRepository;
 import com.longobuccodev.app_adm_obras.core.repository.MealRepository;
 import com.longobuccodev.app_adm_obras.core.repository.ProjectRepository;
 import com.longobuccodev.app_adm_obras.core.repository.RefreshTokenRepository;
@@ -106,9 +109,17 @@ public class UseCaseConfig {
 
     @Bean
     public AuthUseCase authUseCase(AuthenticationGateway authenticationGateway, UserRepository userRepository,
-                                   RefreshTokenRepository refreshTokenRepository, AccessTokenIssuer accessTokenIssuer,
+                                   RefreshTokenRepository refreshTokenRepository,
+                                   LoginAuditRepository loginAuditRepository, AccessTokenIssuer accessTokenIssuer,
                                    RefreshTokenFactory refreshTokenFactory, JwtProperties jwtProperties, Clock clock) {
-        return new AuthUseCase(authenticationGateway, userRepository, refreshTokenRepository, accessTokenIssuer,
-                refreshTokenFactory, jwtProperties.refreshTokenTtl(), jwtProperties.refreshReuseGrace(), clock);
+        return new AuthUseCase(authenticationGateway, userRepository, refreshTokenRepository, loginAuditRepository,
+                accessTokenIssuer, refreshTokenFactory, jwtProperties.refreshTokenTtl(),
+                jwtProperties.refreshReuseGrace(), clock);
+    }
+
+    @Bean
+    public AuditQueryUseCase auditQueryUseCase(ChangeAuditRepository changeAuditRepository,
+                                               LoginAuditRepository loginAuditRepository) {
+        return new AuditQueryUseCase(changeAuditRepository, loginAuditRepository);
     }
 }

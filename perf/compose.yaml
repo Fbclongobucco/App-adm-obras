@@ -1,0 +1,52 @@
+# Ambiente isolado do teste de carga (alvo "perf" de perf/run.sh). Nao usar em producao.
+# App em perfil prod, com CPU e memoria limitadas para que execucoes sejam comparaveis.
+# Versoes fixas; PostgreSQL igual ao compose.local.yaml.
+name: app-adm-obras-perf
+
+services:
+  postgres:
+    image: postgres:16.10
+    # pg_stat_statements: consultas de maior custo de cada execucao (perf/results/*-pg-top.txt)
+    command: ['postgres', '-c', 'shared_preload_libraries=pg_stat_statements', '-c', 'pg_stat_statements.track=all']
+    environment:
+      POSTGRES_DB: app_adm_obras
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app-perf
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U app -d app_adm_obras']
+      interval: 2s
+      retries: 30
+    cpus: 2
+    mem_limit: 1g
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/app_adm_obras
+      DB_USERNAME: app
+      DB_PASSWORD: app-perf
+      # Segredo SOMENTE do ambiente de carga
+      APP_JWT_SECRET: M6W5eft6dKmo2A+8er7p1QUY8heOCll9NYpmfwIrqQ1drInXu2oPvczCw0ilGLDr
+      APP_VIRTUAL_THREADS: ${APP_VIRTUAL_THREADS:-true}
+      DB_POOL_MAX_SIZE: ${DB_POOL_MAX_SIZE:-10}
+      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx512m}
+    ports:
+      - '${PERF_APP_PORT:-8090}:8080'
+    cpus: 2
+    mem_limit: 1g
+
+  # So roda sob demanda: docker compose run --rm k6 run /scripts/script.js
+  k6:
+    image: grafana/k6:1.3.0
+    profiles: [tools]
+    # Usuario do host (perf/run.sh exporta), para gravar o resumo em perf/results
+    user: '${PERF_UID:-1000}:${PERF_GID:-1000}'
+    volumes:
+      - .:/scripts
+      - ./results:/results

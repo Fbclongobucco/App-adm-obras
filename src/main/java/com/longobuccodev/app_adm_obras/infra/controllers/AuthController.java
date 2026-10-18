@@ -2,11 +2,13 @@ package com.longobuccodev.app_adm_obras.infra.controllers;
 
 import com.longobuccodev.app_adm_obras.application.dto.auth.AuthResult;
 import com.longobuccodev.app_adm_obras.application.dto.auth.AuthTokenResponseDTO;
+import com.longobuccodev.app_adm_obras.application.dto.auth.LoginOrigin;
 import com.longobuccodev.app_adm_obras.application.dto.auth.LoginRequestDTO;
 import com.longobuccodev.app_adm_obras.application.dto.auth.LoginResponseDTO;
 import com.longobuccodev.app_adm_obras.application.usecase.AuthUseCase;
 import com.longobuccodev.app_adm_obras.core.exception.AuthenticationFailedException;
 import com.longobuccodev.app_adm_obras.infra.security.RefreshCookieProperties;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -41,8 +43,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthTokenResponseDTO> login(@RequestBody(required = false) LoginRequestDTO dto) {
-        return withRefreshCookie(authUseCase.login(dto));
+    public ResponseEntity<AuthTokenResponseDTO> login(@RequestBody(required = false) LoginRequestDTO dto,
+                                                      HttpServletRequest request) {
+        // Atras de proxy, o IP do cliente so aparece com server.forward-headers-strategy=native
+        LoginOrigin origin = new LoginOrigin(request.getRemoteAddr(), request.getHeader(HttpHeaders.USER_AGENT));
+        return withRefreshCookie(authUseCase.login(dto, origin));
     }
 
     @PostMapping("/refresh")

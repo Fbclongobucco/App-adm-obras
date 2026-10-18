@@ -60,6 +60,8 @@ public class SecurityConfig {
                         // Documentacao da API: so existe nos perfis que habilitam o springdoc
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
+                        // Auditoria (dados pessoais: IP, user-agent): so ADMIN, antes da regra que libera GET ao OPERADOR
+                        .requestMatchers("/api/audit/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/**").hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers("/api/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

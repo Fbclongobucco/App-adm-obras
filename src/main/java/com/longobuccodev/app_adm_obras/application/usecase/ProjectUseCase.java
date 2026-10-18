@@ -123,9 +123,9 @@ public class ProjectUseCase {
         Client client = EntityLookup.optional(dto.clientId(), clientRepository::findById,
                 ResourceNotFoundException::client);
         Set<Accommodation> accommodations = EntityLookup.all(dto.accommodationIds(),
-                accommodationRepository::findById, ResourceNotFoundException::accommodation);
-        Set<Employee> employees = EntityLookup.all(dto.employeeIds(), employeeRepository::findById,
-                ResourceNotFoundException::employee);
+                accommodationRepository::findAllById, Accommodation::getId, ResourceNotFoundException::accommodation);
+        Set<Employee> employees = EntityLookup.all(dto.employeeIds(), employeeRepository::findAllById,
+                Employee::getId, ResourceNotFoundException::employee);
 
         if (existing == null) {
             return ProjectMapper.toDomain(dto, costCenter, client, accommodations, employees);

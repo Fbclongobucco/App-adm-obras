@@ -16,7 +16,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class ClientRepositoryAdapter implements ClientRepository {
@@ -63,16 +65,16 @@ public class ClientRepositoryAdapter implements ClientRepository {
     @Override
     @Transactional(readOnly = true)
     public List<Client> findAll() {
-        return jpaRepository.findAll().stream().map(this::toDomain).toList();
+        return toDomainAll(jpaRepository.findAll());
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<Client> findAll(PageRequest request, SearchTerm term) {
         Pageable pageable = SpringPageSupport.toPageable(request);
-        return SpringPageSupport.toDomain(term.isNone()
+        return SpringPageSupport.toDomainAll(term.isNone()
                 ? jpaRepository.findAll(pageable)
-                : jpaRepository.findAll(SearchSpecification.of(term, SEARCH_TEXT, SEARCH_DIGITS), pageable), this::toDomain);
+                : jpaRepository.findAll(SearchSpecification.of(term, SEARCH_TEXT, SEARCH_DIGITS), pageable), this::toDomainAll);
     }
 
     @Override
@@ -95,12 +97,25 @@ public class ClientRepositoryAdapter implements ClientRepository {
     }
 
     private Client toDomain(ClientEntity entity) {
-        Client client = ClientEntityMapper.toDomain(entity);
-        if (client == null) {
+        if (entity == null) {
             return null;
         }
-        projectJpaRepository.findByClientId(client.getId())
-                .forEach(project -> client.addProject(ProjectEntityMapper.toDomainShallow(project)));
-        return client;
+        return toDomainAll(List.of(entity)).getFirst();
+    }
+
+    /** Obras de todos os clientes da lista em uma consulta, agrupadas por cliente. */
+    private List<Client> toDomainAll(List<ClientEntity> entities) {
+        if (entities.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, List<ProjectEntity>> projects = projectJpaRepository
+                .findByClientIdIn(entities.stream().map(ClientEntity::getId).toList()).stream()
+                .collect(Collectors.groupingBy(project -> project.getClient().getId()));
+        return entities.stream().map(entity -> {
+            Client client = ClientEntityMapper.toDomain(entity);
+            projects.getOrDefault(entity.getId(), List.of())
+                    .forEach(project -> client.addProject(ProjectEntityMapper.toDomainShallow(project)));
+            return client;
+        }).toList();
     }
 }

@@ -23,6 +23,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -74,8 +75,8 @@ class ProjectUseCaseTest {
         Employee employee = employee();
         when(costCenterRepository.findById(costCenter.getId())).thenReturn(costCenter);
         when(clientRepository.findById(client.getId())).thenReturn(client);
-        when(accommodationRepository.findById(accommodation.getId())).thenReturn(accommodation);
-        when(employeeRepository.findById(employee.getId())).thenReturn(employee);
+        when(accommodationRepository.findAllById(Set.of(accommodation.getId()))).thenReturn(List.of(accommodation));
+        when(employeeRepository.findAllById(Set.of(employee.getId()))).thenReturn(List.of(employee));
         when(projectRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         ProjectResponseDTO response = useCase.create(projectRequest(costCenter.getId(), client.getId(),

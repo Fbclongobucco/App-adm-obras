@@ -1,0 +1,21 @@
+# PostgreSQL do perfil "local". Sobe com a aplicação (Docker Compose do Spring Boot) e continua de pé
+# entre reinícios; os dados ficam no volume. Zerar a base: docker compose -f compose.local.yaml down -v
+# Versão fixa e igual a perf/compose.yaml: linha 16, a do checklist de deploy do README.
+# Nome proprio: o compose.yaml de deploy usa o nome do diretorio
+name: app-adm-obras-local
+
+services:
+  postgres:
+    image: postgres:16.10
+    environment:
+      POSTGRES_DB: app_adm_obras
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app-local
+    ports:
+      # Porta do host sorteada pelo Docker; o Spring Boot descobre a porta sozinho
+      - '5432'
+    volumes:
+      - postgres-local:/var/lib/postgresql/data
+
+volumes:
+  postgres-local:

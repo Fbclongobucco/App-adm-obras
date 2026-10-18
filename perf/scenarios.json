@@ -1,0 +1,33 @@
+{
+  "_nota": "Volumes NOMINAIS, sem relacao com producao. Ajuste os numeros conforme o cenario que quiser simular. Cada obra recebe 1 restaurante com almoco; obras pares recebem tambem um restaurante com jantar.",
+  "pequeno": {
+    "costCenters": 5,
+    "clients": 10,
+    "employees": 100,
+    "projects": 20,
+    "employeesPerProject": 5,
+    "accommodations": 10,
+    "employeesPerAccommodation": 3,
+    "users": 5
+  },
+  "medio": {
+    "costCenters": 20,
+    "clients": 100,
+    "employees": 1000,
+    "projects": 200,
+    "employeesPerProject": 5,
+    "accommodations": 100,
+    "employeesPerAccommodation": 3,
+    "users": 20
+  },
+  "grande": {
+    "costCenters": 50,
+    "clients": 1000,
+    "employees": 10000,
+    "projects": 2000,
+    "employeesPerProject": 5,
+    "accommodations": 1000,
+    "employeesPerAccommodation": 3,
+    "users": 50
+  }
+}

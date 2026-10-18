@@ -23,6 +23,13 @@ public interface MealJpaRepository extends JpaRepository<MealEntity, UUID>,
 
     @Query("""
             SELECT meal FROM MealEntity meal
+            WHERE meal.project.id IN :projectIds
+            ORDER BY meal.createdAt, meal.id
+            """)
+    List<MealEntity> findByProjectIdIn(@Param("projectIds") Collection<UUID> projectIds);
+
+    @Query("""
+            SELECT meal FROM MealEntity meal
             WHERE meal.project.costCenter.id = :costCenterId
             """)
     List<MealEntity> findByCostCenterId(@Param("costCenterId") UUID costCenterId);

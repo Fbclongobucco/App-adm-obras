@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,6 +25,12 @@ public interface ProjectJpaRepository extends JpaRepository<ProjectEntity, UUID>
 
     @Query("""
             SELECT project FROM ProjectEntity project
+            WHERE project.client.id IN :clientIds
+            """)
+    List<ProjectEntity> findByClientIdIn(@Param("clientIds") Collection<UUID> clientIds);
+
+    @Query("""
+            SELECT project FROM ProjectEntity project
             WHERE project.costCenter.id = :costCenterId
             """)
     List<ProjectEntity> findByCostCenterId(@Param("costCenterId") UUID costCenterId);
@@ -34,6 +41,14 @@ public interface ProjectJpaRepository extends JpaRepository<ProjectEntity, UUID>
             WHERE employee.id = :employeeId
             """)
     List<ProjectEntity> findByEmployeeId(@Param("employeeId") UUID employeeId);
+
+    /** Pares [id do colaborador, obra] dos colaboradores informados. */
+    @Query("""
+            SELECT employee.id, project FROM ProjectEntity project
+            JOIN project.employees employee
+            WHERE employee.id IN :employeeIds
+            """)
+    List<Object[]> findWithEmployeeIdIn(@Param("employeeIds") Collection<UUID> employeeIds);
 
     List<ProjectEntity> findByStartDate(LocalDate startDate);
 
